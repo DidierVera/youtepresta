@@ -30,5 +30,5 @@ Documentación completa (modelo de datos, esquema SQL, ejemplos de interés, roa
 
 > Actualiza esta sección manualmente (o pídele a Claude Code que la actualice) cada vez que se cierre una fase, para que la próxima sesión sepa dónde vamos sin tener que preguntarte.
 
-- Fase en curso: **Fase 0 — Setup**.
-- Última fase completada: ninguna todavía.
+- Fase en curso: **Fase 2** (pendiente de definir alcance).
+- Última fase completada: **Fase 1 — Login**. `AuthRepository` (singleton, envuelve el plugin `Auth` de supabase-kt), `AuthViewModel` y `LoginScreen` implementados; `HomeScreen` es un placeholder con botón de cerrar sesión. `MainActivity` tiene un `NavHost` (`login` / `home`) que decide destino inicial según `AuthRepository.sessionState`. La sesión persiste automáticamente entre reinicios (comportamiento por defecto de supabase-kt en Android, sin configuración adicional — ver detalle en el resumen de la sesión). Flujo login → home → force-stop → reabrir (sigue en home) → logout → login probado en dispositivo físico.

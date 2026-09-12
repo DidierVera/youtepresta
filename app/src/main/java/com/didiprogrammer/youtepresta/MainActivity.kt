@@ -17,17 +17,24 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.didiprogrammer.youtepresta.data.repository.SessionState
 import com.didiprogrammer.youtepresta.ui.auth.AuthViewModel
 import com.didiprogrammer.youtepresta.ui.auth.LoginScreen
 import com.didiprogrammer.youtepresta.ui.home.HomeScreen
+import com.didiprogrammer.youtepresta.ui.sources.FundingSourceDetailScreen
+import com.didiprogrammer.youtepresta.ui.sources.FundingSourcesScreen
 import com.didiprogrammer.youtepresta.ui.theme.YouTePrestaTheme
 
 private const val ROUTE_LOGIN = "login"
 private const val ROUTE_HOME = "home"
+private const val ROUTE_SOURCES = "sources"
+private const val ARG_SOURCE_ID = "sourceId"
+private const val ROUTE_SOURCE_DETAIL = "sources/{$ARG_SOURCE_ID}"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,7 +81,24 @@ private fun AppRoot(modifier: Modifier = Modifier) {
                         onSignOut = {
                             authViewModel.signOut()
                             navController.navigateClearingBackStack(ROUTE_LOGIN)
-                        }
+                        },
+                        onViewFundingSources = { navController.navigate(ROUTE_SOURCES) }
+                    )
+                }
+                composable(ROUTE_SOURCES) {
+                    FundingSourcesScreen(
+                        onBack = { navController.popBackStack() },
+                        onSourceClick = { sourceId -> navController.navigate("sources/$sourceId") }
+                    )
+                }
+                composable(
+                    route = ROUTE_SOURCE_DETAIL,
+                    arguments = listOf(navArgument(ARG_SOURCE_ID) { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val sourceId = backStackEntry.arguments?.getString(ARG_SOURCE_ID).orEmpty()
+                    FundingSourceDetailScreen(
+                        sourceId = sourceId,
+                        onBack = { navController.popBackStack() }
                     )
                 }
             }

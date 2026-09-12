@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun HomeScreen(
     onSignOut: () -> Unit,
+    onViewFundingSources: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -28,6 +29,10 @@ fun HomeScreen(
     ) {
         Text(text = "Sesión iniciada", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(24.dp))
+        Button(onClick = onViewFundingSources) {
+            Text("Ver bolsillos")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
         Button(onClick = onSignOut) {
             Text("Cerrar sesión")
         }

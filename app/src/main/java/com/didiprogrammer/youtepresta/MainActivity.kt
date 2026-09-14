@@ -28,6 +28,9 @@ import com.didiprogrammer.youtepresta.ui.auth.LoginScreen
 import com.didiprogrammer.youtepresta.ui.friends.FriendPickerTestScreen
 import com.didiprogrammer.youtepresta.ui.friends.FriendsScreen
 import com.didiprogrammer.youtepresta.ui.home.HomeScreen
+import com.didiprogrammer.youtepresta.ui.loans.LoanDetailScreen
+import com.didiprogrammer.youtepresta.ui.loans.LoansScreen
+import com.didiprogrammer.youtepresta.ui.loans.NewLoanScreen
 import com.didiprogrammer.youtepresta.ui.sources.FundingSourceDetailScreen
 import com.didiprogrammer.youtepresta.ui.sources.FundingSourcesScreen
 import com.didiprogrammer.youtepresta.ui.theme.YouTePrestaTheme
@@ -39,6 +42,12 @@ private const val ARG_SOURCE_ID = "sourceId"
 private const val ROUTE_SOURCE_DETAIL = "sources/{$ARG_SOURCE_ID}"
 private const val ROUTE_FRIENDS = "friends"
 private const val ROUTE_FRIEND_PICKER_TEST = "friends/picker-test"
+private const val ROUTE_LOANS = "loans"
+private const val ROUTE_NEW_LOAN = "loans/new"
+private const val ARG_LOAN_ID = "loanId"
+// Deliberately "loan/{loanId}" (singular), not "loans/{loanId}", so it can never be ambiguous
+// with the static "loans/new" route.
+private const val ROUTE_LOAN_DETAIL = "loan/{$ARG_LOAN_ID}"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -88,7 +97,8 @@ private fun AppRoot(modifier: Modifier = Modifier) {
                         },
                         onViewFundingSources = { navController.navigate(ROUTE_SOURCES) },
                         onViewFriends = { navController.navigate(ROUTE_FRIENDS) },
-                        onTestFriendPicker = { navController.navigate(ROUTE_FRIEND_PICKER_TEST) }
+                        onTestFriendPicker = { navController.navigate(ROUTE_FRIEND_PICKER_TEST) },
+                        onViewLoans = { navController.navigate(ROUTE_LOANS) }
                     )
                 }
                 composable(ROUTE_SOURCES) {
@@ -114,6 +124,29 @@ private fun AppRoot(modifier: Modifier = Modifier) {
                 }
                 composable(ROUTE_FRIEND_PICKER_TEST) {
                     FriendPickerTestScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(ROUTE_LOANS) {
+                    LoansScreen(
+                        onBack = { navController.popBackStack() },
+                        onNewLoan = { navController.navigate(ROUTE_NEW_LOAN) },
+                        onLoanClick = { loanId -> navController.navigate("loan/$loanId") }
+                    )
+                }
+                composable(ROUTE_NEW_LOAN) {
+                    NewLoanScreen(
+                        onBack = { navController.popBackStack() },
+                        onLoanSaved = { navController.popBackStack() }
+                    )
+                }
+                composable(
+                    route = ROUTE_LOAN_DETAIL,
+                    arguments = listOf(navArgument(ARG_LOAN_ID) { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val loanId = backStackEntry.arguments?.getString(ARG_LOAN_ID).orEmpty()
+                    LoanDetailScreen(
+                        loanId = loanId,
                         onBack = { navController.popBackStack() }
                     )
                 }

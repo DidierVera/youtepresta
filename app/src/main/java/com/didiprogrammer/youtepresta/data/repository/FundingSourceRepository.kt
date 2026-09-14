@@ -65,13 +65,29 @@ object FundingSourceRepository {
         movementType: MovementType,
         amount: Double,
         notes: String? = null
+    ) = recordSourceMovement(sourceId = sourceId, movementType = movementType, amount = amount, notes = notes)
+
+    /**
+     * Inserts a [source_movements] row and updates the source's current_balance accordingly.
+     * Shared by every feature that moves money in or out of a funding source (manual
+     * adjustments, loans, payments) so the balance update logic lives in one place.
+     */
+    internal suspend fun recordSourceMovement(
+        sourceId: String,
+        movementType: MovementType,
+        amount: Double,
+        notes: String? = null,
+        referenceLoanId: String? = null,
+        referencePaymentId: String? = null
     ) {
         postgrest.from(TABLE_SOURCE_MOVEMENTS).insert(
             NewSourceMovement(
                 sourceId = sourceId,
                 movementType = movementType.dbValue,
                 amount = amount,
-                notes = notes
+                notes = notes,
+                referenceLoanId = referenceLoanId,
+                referencePaymentId = referencePaymentId
             )
         )
 
@@ -99,5 +115,7 @@ private data class NewSourceMovement(
     @SerialName("source_id") val sourceId: String,
     @SerialName("movement_type") val movementType: String,
     val amount: Double,
-    val notes: String? = null
+    val notes: String? = null,
+    @SerialName("reference_loan_id") val referenceLoanId: String? = null,
+    @SerialName("reference_payment_id") val referencePaymentId: String? = null
 )

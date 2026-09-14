@@ -20,6 +20,7 @@ fun HomeScreen(
     onViewFundingSources: () -> Unit,
     onViewFriends: () -> Unit,
     onTestFriendPicker: () -> Unit,
+    onViewLoans: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -41,6 +42,10 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(12.dp))
         Button(onClick = onTestFriendPicker) {
             Text("Probar selector de amigo")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(onClick = onViewLoans) {
+            Text("Ver préstamos")
         }
         Spacer(modifier = Modifier.height(12.dp))
         Button(onClick = onSignOut) {

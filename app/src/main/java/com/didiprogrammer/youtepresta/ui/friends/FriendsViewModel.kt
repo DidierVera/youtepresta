@@ -3,6 +3,7 @@ package com.didiprogrammer.youtepresta.ui.friends
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.didiprogrammer.youtepresta.data.model.Friend
+import com.didiprogrammer.youtepresta.data.repository.FriendHasLoansException
 import com.didiprogrammer.youtepresta.data.repository.FriendRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,14 +22,26 @@ class FriendsViewModel : ViewModel() {
     private val _uiState = MutableStateFlow<FriendsUiState>(FriendsUiState.Loading)
     val uiState: StateFlow<FriendsUiState> = _uiState.asStateFlow()
 
-    private val _isCreateDialogVisible = MutableStateFlow(false)
-    val isCreateDialogVisible: StateFlow<Boolean> = _isCreateDialogVisible.asStateFlow()
+    private val _isDialogVisible = MutableStateFlow(false)
+    val isDialogVisible: StateFlow<Boolean> = _isDialogVisible.asStateFlow()
 
-    private val _isCreating = MutableStateFlow(false)
-    val isCreating: StateFlow<Boolean> = _isCreating.asStateFlow()
+    private val _editingFriend = MutableStateFlow<Friend?>(null)
+    val editingFriend: StateFlow<Friend?> = _editingFriend.asStateFlow()
 
-    private val _createError = MutableStateFlow<String?>(null)
-    val createError: StateFlow<String?> = _createError.asStateFlow()
+    private val _isSaving = MutableStateFlow(false)
+    val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
+
+    private val _saveError = MutableStateFlow<String?>(null)
+    val saveError: StateFlow<String?> = _saveError.asStateFlow()
+
+    private val _friendPendingDelete = MutableStateFlow<Friend?>(null)
+    val friendPendingDelete: StateFlow<Friend?> = _friendPendingDelete.asStateFlow()
+
+    private val _isDeleting = MutableStateFlow(false)
+    val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
+
+    private val _deleteError = MutableStateFlow<String?>(null)
+    val deleteError: StateFlow<String?> = _deleteError.asStateFlow()
 
     fun loadFriends() {
         viewModelScope.launch {
@@ -45,39 +58,98 @@ class FriendsViewModel : ViewModel() {
     }
 
     fun showCreateDialog() {
-        _createError.value = null
-        _isCreateDialogVisible.value = true
+        _editingFriend.value = null
+        _saveError.value = null
+        _isDialogVisible.value = true
     }
 
-    fun dismissCreateDialog() {
-        _isCreateDialogVisible.value = false
-        _createError.value = null
+    fun showEditDialog(friend: Friend) {
+        _editingFriend.value = friend
+        _saveError.value = null
+        _isDialogVisible.value = true
     }
 
-    fun createFriend(name: String, phone: String, notes: String) {
+    fun dismissDialog() {
+        _isDialogVisible.value = false
+        _editingFriend.value = null
+        _saveError.value = null
+    }
+
+    fun saveFriend(name: String, phone: String, notes: String) {
         val trimmedName = name.trim()
         if (trimmedName.isBlank()) {
-            _createError.value = "El nombre es obligatorio."
+            _saveError.value = "El nombre es obligatorio."
             return
         }
 
+        val editing = _editingFriend.value
+
         viewModelScope.launch {
-            _isCreating.value = true
-            _createError.value = null
+            _isSaving.value = true
+            _saveError.value = null
             try {
-                FriendRepository.createFriend(
-                    name = trimmedName,
-                    phone = phone.trim().ifBlank { null },
-                    notes = notes.trim().ifBlank { null }
-                )
-                _isCreating.value = false
-                _isCreateDialogVisible.value = false
+                val phoneValue = phone.trim().ifBlank { null }
+                val notesValue = notes.trim().ifBlank { null }
+                if (editing != null) {
+                    FriendRepository.updateFriend(
+                        id = editing.id,
+                        name = trimmedName,
+                        phone = phoneValue,
+                        notes = notesValue
+                    )
+                } else {
+                    FriendRepository.createFriend(
+                        name = trimmedName,
+                        phone = phoneValue,
+                        notes = notesValue
+                    )
+                }
+                _isSaving.value = false
+                _isDialogVisible.value = false
+                _editingFriend.value = null
                 loadFriends()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _isCreating.value = false
-                _createError.value = "No se pudo crear el amigo."
+                _isSaving.value = false
+                _saveError.value = if (editing != null) {
+                    "No se pudo actualizar el amigo."
+                } else {
+                    "No se pudo crear el amigo."
+                }
+            }
+        }
+    }
+
+    fun confirmDelete(friend: Friend) {
+        _deleteError.value = null
+        _friendPendingDelete.value = friend
+    }
+
+    fun dismissDeleteConfirmation() {
+        _friendPendingDelete.value = null
+        _deleteError.value = null
+    }
+
+    fun deleteFriend() {
+        val friend = _friendPendingDelete.value ?: return
+
+        viewModelScope.launch {
+            _isDeleting.value = true
+            _deleteError.value = null
+            try {
+                FriendRepository.deleteFriend(friend.id)
+                _isDeleting.value = false
+                _friendPendingDelete.value = null
+                loadFriends()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: FriendHasLoansException) {
+                _isDeleting.value = false
+                _deleteError.value = "No puedes eliminar un amigo con préstamos registrados."
+            } catch (e: Exception) {
+                _isDeleting.value = false
+                _deleteError.value = "No se pudo eliminar el amigo."
             }
         }
     }

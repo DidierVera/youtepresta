@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.didiprogrammer.youtepresta.ui.theme.Spacing
 
 @Composable
 fun LoginScreen(
@@ -51,12 +52,12 @@ fun LoginScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(Spacing.lg),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = "Iniciar sesión", style = MaterialTheme.typography.headlineSmall)
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(Spacing.lg))
 
         OutlinedTextField(
             value = email,
@@ -67,7 +68,7 @@ fun LoginScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.md))
 
         OutlinedTextField(
             value = password,
@@ -84,7 +85,7 @@ fun LoginScreen(
             },
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Spacing.lg))
 
         Button(
             onClick = viewModel::login,
@@ -104,7 +105,7 @@ fun LoginScreen(
 
         val currentState = uiState
         if (currentState is LoginUiState.Error) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
             Text(
                 text = currentState.message,
                 color = MaterialTheme.colorScheme.error

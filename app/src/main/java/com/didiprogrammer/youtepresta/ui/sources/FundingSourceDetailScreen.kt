@@ -1,5 +1,6 @@
 package com.didiprogrammer.youtepresta.ui.sources
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,10 +17,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -52,6 +57,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.model.SourceMovement
 import com.didiprogrammer.youtepresta.data.repository.MovementType
+import com.didiprogrammer.youtepresta.ui.common.DialogButtonRow
+import com.didiprogrammer.youtepresta.ui.theme.Spacing
 import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,7 +72,8 @@ fun FundingSourceDetailScreen(
     LaunchedEffect(sourceId) { viewModel.load(sourceId) }
 
     val uiState by viewModel.uiState.collectAsState()
-    val isAddMovementSheetVisible by viewModel.isAddMovementSheetVisible.collectAsState()
+    val isMovementSheetVisible by viewModel.isMovementSheetVisible.collectAsState()
+    val movementPendingDelete by viewModel.movementPendingDelete.collectAsState()
 
     Scaffold(
         modifier = modifier,
@@ -103,7 +111,7 @@ fun FundingSourceDetailScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(state.message, color = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(Spacing.sm))
                         Button(onClick = { viewModel.refresh() }) {
                             Text("Reintentar")
                         }
@@ -114,6 +122,8 @@ fun FundingSourceDetailScreen(
                 FundingSourceDetailContent(
                     source = state.source,
                     movements = state.movements,
+                    onEditMovement = { viewModel.showEditMovementSheet(it) },
+                    onDeleteMovement = { viewModel.confirmDeleteMovement(it) },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
@@ -122,8 +132,12 @@ fun FundingSourceDetailScreen(
         }
     }
 
-    if (isAddMovementSheetVisible) {
-        AddMovementSheet(viewModel = viewModel)
+    if (isMovementSheetVisible) {
+        MovementSheet(viewModel = viewModel)
+    }
+
+    if (movementPendingDelete != null) {
+        DeleteMovementDialog(viewModel = viewModel, movement = movementPendingDelete!!)
     }
 }
 
@@ -131,12 +145,14 @@ fun FundingSourceDetailScreen(
 private fun FundingSourceDetailContent(
     source: FundingSource,
     movements: List<SourceMovement>,
+    onEditMovement: (SourceMovement) -> Unit,
+    onDeleteMovement: (SourceMovement) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(Spacing.md)) {
             Text(text = source.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             Text(text = formatCop(source.currentBalance), style = MaterialTheme.typography.titleLarge)
         }
         HorizontalDivider()
@@ -146,10 +162,14 @@ private fun FundingSourceDetailContent(
                 Text("Este bolsillo todavía no tiene movimientos.")
             }
         } else {
-            LazyColumn(contentPadding = PaddingValues(16.dp)) {
+            LazyColumn(contentPadding = PaddingValues(Spacing.md)) {
                 items(movements, key = { it.id }) { movement ->
-                    MovementRow(movement)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    MovementRow(
+                        movement = movement,
+                        onEdit = { onEditMovement(movement) },
+                        onDelete = { onDeleteMovement(movement) }
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                 }
             }
         }
@@ -157,57 +177,99 @@ private fun FundingSourceDetailContent(
 }
 
 @Composable
-private fun MovementRow(movement: SourceMovement) {
+private fun MovementRow(movement: SourceMovement, onEdit: () -> Unit, onDelete: () -> Unit) {
     val isIncome = movement.movementType == MovementType.INCOME.dbValue
     val amountColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+    val isManual = movement.referenceLoanId == null && movement.referencePaymentId == null
+    val sourceLabel = when {
+        movement.referenceLoanId != null -> "Préstamo"
+        movement.referencePaymentId != null -> "Pago"
+        else -> null
+    }
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(Spacing.md),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(text = formatMovementDate(movement.createdAt), style = MaterialTheme.typography.bodySmall)
+                Text(text = formatMovementDate(movement.createdAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (!movement.notes.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(text = movement.notes, style = MaterialTheme.typography.bodyMedium)
                 }
+                if (sourceLabel != null) {
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Text(
+                        text = sourceLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(Spacing.sm)
+                            )
+                            .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                    )
+                }
             }
-            Text(
-                text = "${if (isIncome) "+" else "-"}${formatCop(abs(movement.amount))}",
-                color = amountColor,
-                fontWeight = FontWeight.Bold
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "${if (isIncome) "+" else "-"}${formatCop(abs(movement.amount))}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = amountColor,
+                    fontWeight = FontWeight.Bold
+                )
+                if (isManual) {
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Filled.Edit, contentDescription = "Editar movimiento")
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Eliminar movimiento")
+                    }
+                }
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddMovementSheet(viewModel: FundingSourceDetailViewModel) {
+private fun MovementSheet(viewModel: FundingSourceDetailViewModel) {
     val sheetState = rememberModalBottomSheetState()
     val isSaving by viewModel.isSavingMovement.collectAsState()
     val movementError by viewModel.movementError.collectAsState()
+    val editingMovement by viewModel.editingMovement.collectAsState()
 
-    var selectedType by remember { mutableStateOf(MovementType.INCOME) }
-    var amount by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
+    val initialType = editingMovement?.let {
+        if (it.movementType == MovementType.INCOME.dbValue) MovementType.INCOME else MovementType.OUTFLOW
+    } ?: MovementType.INCOME
+
+    var selectedType by remember(editingMovement) { mutableStateOf(initialType) }
+    var amount by remember(editingMovement) {
+        mutableStateOf(editingMovement?.amount?.let { formatPlainAmount(it) }.orEmpty())
+    }
+    var notes by remember(editingMovement) { mutableStateOf(editingMovement?.notes.orEmpty()) }
 
     ModalBottomSheet(
-        onDismissRequest = { viewModel.dismissAddMovementSheet() },
+        onDismissRequest = { viewModel.dismissMovementSheet() },
         sheetState = sheetState
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp)
+                .padding(Spacing.lg)
                 .imePadding()
         ) {
-            Text("Agregar dinero", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                if (editingMovement != null) "Editar movimiento" else "Agregar dinero",
+                style = MaterialTheme.typography.titleLarge
+            )
+            Spacer(modifier = Modifier.height(Spacing.md))
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
@@ -222,7 +284,7 @@ private fun AddMovementSheet(viewModel: FundingSourceDetailViewModel) {
                 ) {
                     Text("Agregar")
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(Spacing.sm))
                 Button(
                     onClick = { selectedType = MovementType.OUTFLOW },
                     enabled = !isSaving,
@@ -236,7 +298,7 @@ private fun AddMovementSheet(viewModel: FundingSourceDetailViewModel) {
                     Text("Retirar")
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
             OutlinedTextField(
                 value = amount,
@@ -247,7 +309,7 @@ private fun AddMovementSheet(viewModel: FundingSourceDetailViewModel) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Spacing.sm))
 
             OutlinedTextField(
                 value = notes,
@@ -257,10 +319,10 @@ private fun AddMovementSheet(viewModel: FundingSourceDetailViewModel) {
                 enabled = !isSaving,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
             Button(
-                onClick = { viewModel.addMovement(selectedType, amount, notes) },
+                onClick = { viewModel.saveMovement(selectedType, amount, notes) },
                 enabled = !isSaving,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -272,9 +334,39 @@ private fun AddMovementSheet(viewModel: FundingSourceDetailViewModel) {
             }
 
             if (movementError != null) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(text = movementError.orEmpty(), color = MaterialTheme.colorScheme.error)
             }
         }
     }
+}
+
+@Composable
+private fun DeleteMovementDialog(viewModel: FundingSourceDetailViewModel, movement: SourceMovement) {
+    val isDeleting by viewModel.isDeletingMovement.collectAsState()
+    val deleteError by viewModel.deleteMovementError.collectAsState()
+
+    AlertDialog(
+        onDismissRequest = { viewModel.dismissDeleteMovementConfirmation() },
+        title = { Text("Eliminar movimiento") },
+        text = {
+            Column {
+                Text("¿Seguro que quieres eliminar este movimiento de ${formatCop(movement.amount)}? Esta acción no se puede deshacer.")
+                if (deleteError != null) {
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    Text(text = deleteError.orEmpty(), color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            DialogButtonRow(
+                onDismiss = { viewModel.dismissDeleteMovementConfirmation() },
+                onConfirm = { viewModel.deleteMovement() },
+                confirmText = "Eliminar",
+                enabled = !isDeleting,
+                isLoading = isDeleting,
+                confirmColor = MaterialTheme.colorScheme.error
+            )
+        }
+    )
 }

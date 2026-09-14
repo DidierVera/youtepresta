@@ -25,7 +25,6 @@ import androidx.navigation.navArgument
 import com.didiprogrammer.youtepresta.data.repository.SessionState
 import com.didiprogrammer.youtepresta.ui.auth.AuthViewModel
 import com.didiprogrammer.youtepresta.ui.auth.LoginScreen
-import com.didiprogrammer.youtepresta.ui.friends.FriendPickerTestScreen
 import com.didiprogrammer.youtepresta.ui.friends.FriendsScreen
 import com.didiprogrammer.youtepresta.ui.home.HomeScreen
 import com.didiprogrammer.youtepresta.ui.loans.LoanDetailScreen
@@ -41,7 +40,6 @@ private const val ROUTE_SOURCES = "sources"
 private const val ARG_SOURCE_ID = "sourceId"
 private const val ROUTE_SOURCE_DETAIL = "sources/{$ARG_SOURCE_ID}"
 private const val ROUTE_FRIENDS = "friends"
-private const val ROUTE_FRIEND_PICKER_TEST = "friends/picker-test"
 private const val ROUTE_LOANS = "loans"
 private const val ROUTE_NEW_LOAN = "loans/new"
 private const val ARG_LOAN_ID = "loanId"
@@ -97,7 +95,6 @@ private fun AppRoot(modifier: Modifier = Modifier) {
                         },
                         onViewFundingSources = { navController.navigate(ROUTE_SOURCES) },
                         onViewFriends = { navController.navigate(ROUTE_FRIENDS) },
-                        onTestFriendPicker = { navController.navigate(ROUTE_FRIEND_PICKER_TEST) },
                         onViewLoans = { navController.navigate(ROUTE_LOANS) }
                     )
                 }
@@ -119,11 +116,6 @@ private fun AppRoot(modifier: Modifier = Modifier) {
                 }
                 composable(ROUTE_FRIENDS) {
                     FriendsScreen(
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-                composable(ROUTE_FRIEND_PICKER_TEST) {
-                    FriendPickerTestScreen(
                         onBack = { navController.popBackStack() }
                     )
                 }

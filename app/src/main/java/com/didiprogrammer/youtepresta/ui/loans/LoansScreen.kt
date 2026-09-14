@@ -1,6 +1,5 @@
 package com.didiprogrammer.youtepresta.ui.loans
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -34,11 +32,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.didiprogrammer.youtepresta.ui.sources.formatCop
+import com.didiprogrammer.youtepresta.ui.theme.Spacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,7 +84,7 @@ fun LoansScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(state.message, color = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(Spacing.sm))
                         Button(onClick = { viewModel.loadLoans() }) {
                             Text("Reintentar")
                         }
@@ -107,11 +104,11 @@ fun LoansScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding),
-                        contentPadding = PaddingValues(16.dp)
+                        contentPadding = PaddingValues(Spacing.md)
                     ) {
                         items(state.loans, key = { it.loan.id }) { item ->
                             LoanRow(item = item, onClick = { onLoanClick(item.loan.id) })
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(Spacing.sm))
                         }
                     }
                 }
@@ -126,16 +123,14 @@ private fun LoanRow(item: LoanListItem, onClick: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(Spacing.md),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
                 Text(text = item.friendName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = formatCop(item.loan.principalAmount), style = MaterialTheme.typography.bodyLarge)
                 item.loan.dueDate?.let { dueDate ->
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(
                         text = "Vence: ${formatLoanDate(dueDate)}",
                         style = MaterialTheme.typography.bodySmall,
@@ -143,26 +138,15 @@ private fun LoanRow(item: LoanListItem, onClick: () -> Unit) {
                     )
                 }
             }
-            StatusBadge(status = item.visualStatus)
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = formatCop(item.loan.principalAmount),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                StatusBadge(status = item.visualStatus)
+            }
         }
-    }
-}
-
-@Composable
-private fun StatusBadge(status: LoanVisualStatus) {
-    val color = when (status) {
-        LoanVisualStatus.PAID -> Color.Gray
-        LoanVisualStatus.OVERDUE -> MaterialTheme.colorScheme.error
-        LoanVisualStatus.DUE_TODAY -> Color(0xFFF9A825)
-        LoanVisualStatus.ON_TRACK -> Color(0xFF2E7D32)
-    }
-
-    Box(
-        modifier = Modifier
-            .padding(0.dp)
-            .background(color = color.copy(alpha = 0.15f), shape = RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-    ) {
-        Text(text = status.label, color = color, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
     }
 }

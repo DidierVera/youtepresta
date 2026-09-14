@@ -17,6 +17,10 @@ private val movementDateFormatter: DateTimeFormatter =
 
 fun formatCop(amount: Double): String = copFormatter.format(amount)
 
+/** Plain numeric string (no currency symbol/grouping) to prefill an editable amount field. */
+fun formatPlainAmount(amount: Double): String =
+    if (amount == amount.toLong().toDouble()) amount.toLong().toString() else amount.toString()
+
 fun formatMovementDate(isoTimestamp: String): String = try {
     OffsetDateTime.parse(isoTimestamp)
         .atZoneSameInstant(ZoneId.systemDefault())

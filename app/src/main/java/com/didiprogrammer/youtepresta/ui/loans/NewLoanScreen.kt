@@ -50,6 +50,7 @@ import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.repository.InterestType
 import com.didiprogrammer.youtepresta.ui.friends.FriendPicker
 import com.didiprogrammer.youtepresta.ui.sources.formatCop
+import com.didiprogrammer.youtepresta.ui.theme.Spacing
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -101,10 +102,10 @@ fun NewLoanScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp)
+                .padding(Spacing.lg)
         ) {
             FriendPicker(onFriendSelected = { selectedFriend = it })
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
             OutlinedTextField(
                 value = amount,
@@ -115,7 +116,7 @@ fun NewLoanScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
             when (val state = sourcesState) {
                 is FundingSourcesLoadState.Loading -> {
@@ -159,7 +160,7 @@ fun NewLoanScreen(
                     val amountValue = amount.replace(",", ".").toDoubleOrNull()
                     val source = selectedSource
                     if (source != null && amountValue != null && amountValue > source.currentBalance) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(Spacing.sm))
                         Text(
                             text = "El monto supera el saldo actual del bolsillo (${formatCop(source.currentBalance)}).",
                             color = MaterialTheme.colorScheme.error,
@@ -168,7 +169,7 @@ fun NewLoanScreen(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
             OutlinedTextField(
                 value = dueDate?.let { formatLoanDate(it) }.orEmpty(),
@@ -183,16 +184,16 @@ fun NewLoanScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
             TextButton(onClick = { showMore = !showMore }) {
                 Text(if (showMore) "Mostrar menos" else "Mostrar más")
             }
 
             if (showMore) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
                 Text("Interés (solo informativo, no se calcula automáticamente)", style = MaterialTheme.typography.bodySmall)
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Button(
@@ -207,7 +208,7 @@ fun NewLoanScreen(
                     ) {
                         Text("Ninguno")
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
                     Button(
                         onClick = { interestType = InterestType.FIXED },
                         enabled = !isSaving,
@@ -223,7 +224,7 @@ fun NewLoanScreen(
                 }
 
                 if (interestType == InterestType.FIXED) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                     OutlinedTextField(
                         value = interestValue,
                         onValueChange = { interestValue = it },
@@ -235,7 +236,7 @@ fun NewLoanScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(Spacing.lg))
 
             Button(
                 onClick = {
@@ -259,7 +260,7 @@ fun NewLoanScreen(
             }
 
             if (error != null) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(text = error.orEmpty(), color = MaterialTheme.colorScheme.error)
             }
         }

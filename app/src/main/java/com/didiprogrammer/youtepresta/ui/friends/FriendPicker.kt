@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.didiprogrammer.youtepresta.data.model.Friend
+import com.didiprogrammer.youtepresta.ui.theme.Spacing
 
 /**
  * Reusable "search or create friend" component. Loads the friend list once and filters it in
@@ -108,12 +109,12 @@ fun FriendPicker(
         }
 
         if (isCreating) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Spacing.sm))
             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
         }
 
         if (error != null) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Spacing.sm))
             Text(text = error.orEmpty(), color = MaterialTheme.colorScheme.error)
         }
     }

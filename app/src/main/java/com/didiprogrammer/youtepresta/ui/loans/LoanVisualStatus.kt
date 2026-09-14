@@ -1,11 +1,10 @@
 package com.didiprogrammer.youtepresta.ui.loans
 
 import com.didiprogrammer.youtepresta.data.model.Loan
+import com.didiprogrammer.youtepresta.data.repository.LoanStatus
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
-private const val STATUS_PAID = "paid"
 
 /**
  * Purely visual classification for the loan list/detail badges. Never written back to the
@@ -21,7 +20,7 @@ enum class LoanVisualStatus(val label: String) {
 }
 
 fun visualStatusFor(loan: Loan, today: LocalDate = LocalDate.now()): LoanVisualStatus {
-    if (loan.status == STATUS_PAID) return LoanVisualStatus.PAID
+    if (loan.status == LoanStatus.PAID) return LoanVisualStatus.PAID
 
     val dueDate = loan.dueDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
         ?: return LoanVisualStatus.ON_TRACK

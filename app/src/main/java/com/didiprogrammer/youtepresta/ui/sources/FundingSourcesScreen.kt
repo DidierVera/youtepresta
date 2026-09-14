@@ -1,8 +1,10 @@
 package com.didiprogrammer.youtepresta.ui.sources
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,6 +48,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.didiprogrammer.youtepresta.data.model.FundingSource
+import com.didiprogrammer.youtepresta.ui.theme.Spacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,7 +97,7 @@ fun FundingSourcesScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(state.message, color = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(Spacing.sm))
                         Button(onClick = { viewModel.loadFundingSources() }) {
                             Text("Reintentar")
                         }
@@ -114,14 +117,14 @@ fun FundingSourcesScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding),
-                        contentPadding = PaddingValues(16.dp)
+                        contentPadding = PaddingValues(Spacing.md)
                     ) {
                         items(state.sources, key = { it.id }) { source ->
                             FundingSourceRow(
                                 source = source,
                                 onClick = { onSourceClick(source.id) }
                             )
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(Spacing.sm))
                         }
                     }
                 }
@@ -136,16 +139,16 @@ fun FundingSourcesScreen(
 
 @Composable
 private fun FundingSourceRow(source: FundingSource, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(0.dp),
-        onClick = onClick
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+    Card(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.md),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(text = source.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = formatCop(source.currentBalance), style = MaterialTheme.typography.bodyLarge)
+            Text(text = formatCop(source.currentBalance), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -168,11 +171,11 @@ private fun CreateFundingSourceSheet(viewModel: FundingSourcesViewModel) {
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp)
+                .padding(Spacing.lg)
                 .imePadding()
         ) {
             Text("Nuevo bolsillo", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
             OutlinedTextField(
                 value = name,
@@ -182,7 +185,7 @@ private fun CreateFundingSourceSheet(viewModel: FundingSourcesViewModel) {
                 enabled = !isCreating,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Spacing.sm))
 
             OutlinedTextField(
                 value = initialBalance,
@@ -193,7 +196,7 @@ private fun CreateFundingSourceSheet(viewModel: FundingSourcesViewModel) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
             Button(
                 onClick = { viewModel.createFundingSource(name, initialBalance) },
@@ -208,7 +211,7 @@ private fun CreateFundingSourceSheet(viewModel: FundingSourcesViewModel) {
             }
 
             if (createError != null) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(text = createError.orEmpty(), color = MaterialTheme.colorScheme.error)
             }
         }

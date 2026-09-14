@@ -32,14 +32,25 @@ class LoansViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = LoansUiState.Loading
             try {
+                // getLoans() already skips any individual row it can't decode. Friend names are
+                // a separate, independent lookup: if it fails, show the loans anyway with a
+                // placeholder name instead of losing the whole list over an unrelated fetch.
                 val loans = LoanRepository.getLoans()
-                val friendsById = FriendRepository.getFriends().associateBy { it.id }
-                val items = loans.map { loan ->
-                    LoanListItem(
-                        loan = loan,
-                        friendName = friendsById[loan.friendId]?.name ?: "Amigo",
-                        visualStatus = visualStatusFor(loan)
-                    )
+                val friendsById = try {
+                    FriendRepository.getFriends().associateBy { it.id }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    emptyMap()
+                }
+                val items = loans.mapNotNull { loan ->
+                    runCatching {
+                        LoanListItem(
+                            loan = loan,
+                            friendName = friendsById[loan.friendId]?.name ?: "Amigo",
+                            visualStatus = visualStatusFor(loan)
+                        )
+                    }.getOrNull()
                 }
                 _uiState.value = LoansUiState.Content(items)
             } catch (e: CancellationException) {

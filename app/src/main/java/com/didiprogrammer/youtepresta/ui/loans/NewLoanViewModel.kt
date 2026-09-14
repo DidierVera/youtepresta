@@ -7,6 +7,7 @@ import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.repository.FundingSourceRepository
 import com.didiprogrammer.youtepresta.data.repository.InterestType
 import com.didiprogrammer.youtepresta.data.repository.LoanRepository
+import com.didiprogrammer.youtepresta.data.repository.LoanSourceMovementException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -101,6 +102,14 @@ class NewLoanViewModel : ViewModel() {
                 _loanCreated.value = true
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: LoanSourceMovementException) {
+                // The loan row exists but its funding source was never debited — surface this
+                // clearly instead of the generic message, and stay on screen (don't set
+                // loanCreated) so the warning is actually seen instead of navigating away.
+                _isSaving.value = false
+                _error.value = "El préstamo se creó, pero no se pudo descontar el bolsillo de " +
+                    "origen. Revísalo manualmente en la lista de préstamos y en el historial " +
+                    "del bolsillo antes de intentarlo de nuevo."
             } catch (e: Exception) {
                 _isSaving.value = false
                 _error.value = "No se pudo crear el préstamo."

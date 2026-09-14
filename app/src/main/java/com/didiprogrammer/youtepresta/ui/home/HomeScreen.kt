@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 fun HomeScreen(
     onSignOut: () -> Unit,
     onViewFundingSources: () -> Unit,
+    onViewFriends: () -> Unit,
+    onTestFriendPicker: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -31,6 +33,14 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onViewFundingSources) {
             Text("Ver bolsillos")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(onClick = onViewFriends) {
+            Text("Ver amigos")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(onClick = onTestFriendPicker) {
+            Text("Probar selector de amigo")
         }
         Spacer(modifier = Modifier.height(12.dp))
         Button(onClick = onSignOut) {

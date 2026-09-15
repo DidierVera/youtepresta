@@ -1,7 +1,9 @@
 package com.didiprogrammer.youtepresta.ui.loans
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.Friend
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.model.Loan
@@ -24,7 +26,7 @@ data class PaymentListItem(
 
 sealed interface LoanDetailUiState {
     data object Loading : LoanDetailUiState
-    data class Error(val message: String) : LoanDetailUiState
+    data class Error(@StringRes val messageRes: Int) : LoanDetailUiState
     data class Content(
         val loan: Loan,
         val friend: Friend?,
@@ -59,7 +61,9 @@ class LoanDetailViewModel : ViewModel() {
                 val friend = FriendRepository.getFriends().find { it.id == loan.friendId }
                 val source = FundingSourceRepository.getFundingSource(loan.sourceId)
                 val payments = PaymentRepository.getPayments(id)
-                val sourcesById = FundingSourceRepository.getFundingSources().associateBy { it.id }
+                // includeArchived: true — a payment's destination source may since have been
+                // archived, but its name must still resolve for this historical list.
+                val sourcesById = FundingSourceRepository.getFundingSources(includeArchived = true).associateBy { it.id }
                 val paymentItems = payments.map { payment ->
                     PaymentListItem(
                         payment = payment,
@@ -78,7 +82,7 @@ class LoanDetailViewModel : ViewModel() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _uiState.value = LoanDetailUiState.Error("No se pudo cargar el préstamo.")
+                _uiState.value = LoanDetailUiState.Error(R.string.loan_detail_load_error)
             }
         }
     }

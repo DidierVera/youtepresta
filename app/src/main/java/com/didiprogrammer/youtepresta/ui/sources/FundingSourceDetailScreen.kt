@@ -50,10 +50,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.model.SourceMovement
 import com.didiprogrammer.youtepresta.data.repository.MovementType
@@ -74,23 +76,30 @@ fun FundingSourceDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isMovementSheetVisible by viewModel.isMovementSheetVisible.collectAsState()
     val movementPendingDelete by viewModel.movementPendingDelete.collectAsState()
+    val isDeleteSourceConfirmVisible by viewModel.isDeleteSourceConfirmVisible.collectAsState()
+    val sourceDeleted by viewModel.sourceDeleted.collectAsState()
+
+    LaunchedEffect(sourceDeleted) {
+        if (sourceDeleted) onBack()
+    }
 
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Detalle del bolsillo") },
+                title = { Text(stringResource(R.string.source_detail_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
         },
         floatingActionButton = {
-            if (uiState is FundingSourceDetailUiState.Content) {
+            val state = uiState
+            if (state is FundingSourceDetailUiState.Content && !state.source.isArchived) {
                 FloatingActionButton(onClick = { viewModel.showAddMovementSheet() }) {
-                    Text("+")
+                    Text(stringResource(R.string.common_plus_symbol))
                 }
             }
         }
@@ -110,18 +119,18 @@ fun FundingSourceDetailScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(state.messageRes), color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(Spacing.sm))
                         Button(onClick = { viewModel.refresh() }) {
-                            Text("Reintentar")
+                            Text(stringResource(R.string.common_retry))
                         }
                     }
                 }
             }
             is FundingSourceDetailUiState.Content -> {
                 FundingSourceDetailContent(
-                    source = state.source,
-                    movements = state.movements,
+                    state = state,
+                    viewModel = viewModel,
                     onEditMovement = { viewModel.showEditMovementSheet(it) },
                     onDeleteMovement = { viewModel.confirmDeleteMovement(it) },
                     modifier = Modifier
@@ -139,27 +148,56 @@ fun FundingSourceDetailScreen(
     if (movementPendingDelete != null) {
         DeleteMovementDialog(viewModel = viewModel, movement = movementPendingDelete!!)
     }
+
+    if (isDeleteSourceConfirmVisible) {
+        val state = uiState
+        if (state is FundingSourceDetailUiState.Content) {
+            DeleteSourceDialog(viewModel = viewModel, source = state.source)
+        }
+    }
 }
 
 @Composable
 private fun FundingSourceDetailContent(
-    source: FundingSource,
-    movements: List<SourceMovement>,
+    state: FundingSourceDetailUiState.Content,
+    viewModel: FundingSourceDetailViewModel,
     onEditMovement: (SourceMovement) -> Unit,
     onDeleteMovement: (SourceMovement) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val source = state.source
+    val movements = state.movements
+
     Column(modifier = modifier) {
         Column(modifier = Modifier.padding(Spacing.md)) {
-            Text(text = source.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = source.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                if (source.isArchived) {
+                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Text(
+                        text = stringResource(R.string.source_archived_badge),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(Spacing.sm)
+                            )
+                            .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(Spacing.xs))
             Text(text = formatCop(source.currentBalance), style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(Spacing.sm))
+
+            SourceArchiveActions(state = state, viewModel = viewModel)
         }
         HorizontalDivider()
 
         if (movements.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Este bolsillo todavía no tiene movimientos.")
+                Text(stringResource(R.string.source_detail_empty_state))
             }
         } else {
             LazyColumn(contentPadding = PaddingValues(Spacing.md)) {
@@ -177,13 +215,104 @@ private fun FundingSourceDetailContent(
 }
 
 @Composable
+private fun SourceArchiveActions(state: FundingSourceDetailUiState.Content, viewModel: FundingSourceDetailViewModel) {
+    val isProcessing by viewModel.isProcessingArchiveAction.collectAsState()
+    val archiveActionError by viewModel.archiveActionError.collectAsState()
+    val source = state.source
+
+    Column {
+        when {
+            source.isArchived -> {
+                Button(
+                    onClick = { viewModel.unarchiveSource() },
+                    enabled = !isProcessing,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (isProcessing) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text(stringResource(R.string.source_unarchive_button))
+                    }
+                }
+            }
+            !state.hasAnyLoan -> {
+                Button(
+                    onClick = { viewModel.confirmDeleteSource() },
+                    enabled = !isProcessing,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.common_delete))
+                }
+            }
+            else -> {
+                Button(
+                    onClick = { viewModel.archiveSource() },
+                    enabled = !isProcessing && state.canArchive,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (isProcessing) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text(stringResource(R.string.source_archive_button))
+                    }
+                }
+                if (!state.canArchive) {
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Text(
+                        text = stringResource(R.string.source_archive_blocked_message),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        if (archiveActionError != null) {
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            Text(text = stringResource(archiveActionError!!), color = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+@Composable
+private fun DeleteSourceDialog(viewModel: FundingSourceDetailViewModel, source: FundingSource) {
+    val isDeleting by viewModel.isDeletingSource.collectAsState()
+    val deleteError by viewModel.deleteSourceError.collectAsState()
+
+    AlertDialog(
+        onDismissRequest = { viewModel.dismissDeleteSourceConfirmation() },
+        title = { Text(stringResource(R.string.source_delete_title)) },
+        text = {
+            Column {
+                Text(stringResource(R.string.source_delete_confirm_message, source.name))
+                if (deleteError != null) {
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    Text(text = stringResource(deleteError!!), color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            DialogButtonRow(
+                onDismiss = { viewModel.dismissDeleteSourceConfirmation() },
+                onConfirm = { viewModel.deleteSource() },
+                confirmText = stringResource(R.string.common_delete),
+                enabled = !isDeleting,
+                isLoading = isDeleting,
+                confirmColor = MaterialTheme.colorScheme.error
+            )
+        }
+    )
+}
+
+@Composable
 private fun MovementRow(movement: SourceMovement, onEdit: () -> Unit, onDelete: () -> Unit) {
     val isIncome = movement.movementType == MovementType.INCOME.dbValue
     val amountColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
     val isManual = movement.referenceLoanId == null && movement.referencePaymentId == null
-    val sourceLabel = when {
-        movement.referenceLoanId != null -> "Préstamo"
-        movement.referencePaymentId != null -> "Pago"
+    val sourceLabelRes = when {
+        movement.referenceLoanId != null -> R.string.source_movement_reference_loan
+        movement.referencePaymentId != null -> R.string.source_movement_reference_payment
         else -> null
     }
 
@@ -201,10 +330,10 @@ private fun MovementRow(movement: SourceMovement, onEdit: () -> Unit, onDelete: 
                     Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(text = movement.notes, style = MaterialTheme.typography.bodyMedium)
                 }
-                if (sourceLabel != null) {
+                if (sourceLabelRes != null) {
                     Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(
-                        text = sourceLabel,
+                        text = stringResource(sourceLabelRes),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
@@ -225,10 +354,10 @@ private fun MovementRow(movement: SourceMovement, onEdit: () -> Unit, onDelete: 
                 )
                 if (isManual) {
                     IconButton(onClick = onEdit) {
-                        Icon(Icons.Filled.Edit, contentDescription = "Editar movimiento")
+                        Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.movement_edit_icon))
                     }
                     IconButton(onClick = onDelete) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Eliminar movimiento")
+                        Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.movement_delete_icon))
                     }
                 }
             }
@@ -266,7 +395,7 @@ private fun MovementSheet(viewModel: FundingSourceDetailViewModel) {
                 .imePadding()
         ) {
             Text(
-                if (editingMovement != null) "Editar movimiento" else "Agregar dinero",
+                stringResource(if (editingMovement != null) R.string.movement_sheet_title_edit else R.string.movement_sheet_title_add),
                 style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -282,7 +411,7 @@ private fun MovementSheet(viewModel: FundingSourceDetailViewModel) {
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Agregar")
+                    Text(stringResource(R.string.movement_type_income_button))
                 }
                 Spacer(modifier = Modifier.width(Spacing.sm))
                 Button(
@@ -295,7 +424,7 @@ private fun MovementSheet(viewModel: FundingSourceDetailViewModel) {
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Retirar")
+                    Text(stringResource(R.string.movement_type_outflow_button))
                 }
             }
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -303,7 +432,7 @@ private fun MovementSheet(viewModel: FundingSourceDetailViewModel) {
             OutlinedTextField(
                 value = amount,
                 onValueChange = { amount = it },
-                label = { Text("Monto") },
+                label = { Text(stringResource(R.string.common_amount_label)) },
                 singleLine = true,
                 enabled = !isSaving,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -314,7 +443,7 @@ private fun MovementSheet(viewModel: FundingSourceDetailViewModel) {
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
-                label = { Text("Nota (opcional)") },
+                label = { Text(stringResource(R.string.movement_notes_label)) },
                 singleLine = true,
                 enabled = !isSaving,
                 modifier = Modifier.fillMaxWidth()
@@ -329,13 +458,13 @@ private fun MovementSheet(viewModel: FundingSourceDetailViewModel) {
                 if (isSaving) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Guardar")
+                    Text(stringResource(R.string.common_save))
                 }
             }
 
             if (movementError != null) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                Text(text = movementError.orEmpty(), color = MaterialTheme.colorScheme.error)
+                Text(text = stringResource(movementError!!), color = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -348,13 +477,13 @@ private fun DeleteMovementDialog(viewModel: FundingSourceDetailViewModel, moveme
 
     AlertDialog(
         onDismissRequest = { viewModel.dismissDeleteMovementConfirmation() },
-        title = { Text("Eliminar movimiento") },
+        title = { Text(stringResource(R.string.movement_delete_title)) },
         text = {
             Column {
-                Text("¿Seguro que quieres eliminar este movimiento de ${formatCop(movement.amount)}? Esta acción no se puede deshacer.")
+                Text(stringResource(R.string.movement_delete_confirm_message, formatCop(movement.amount)))
                 if (deleteError != null) {
                     Spacer(modifier = Modifier.height(Spacing.sm))
-                    Text(text = deleteError.orEmpty(), color = MaterialTheme.colorScheme.error)
+                    Text(text = stringResource(deleteError!!), color = MaterialTheme.colorScheme.error)
                 }
             }
         },
@@ -362,7 +491,7 @@ private fun DeleteMovementDialog(viewModel: FundingSourceDetailViewModel, moveme
             DialogButtonRow(
                 onDismiss = { viewModel.dismissDeleteMovementConfirmation() },
                 onConfirm = { viewModel.deleteMovement() },
-                confirmText = "Eliminar",
+                confirmText = stringResource(R.string.common_delete),
                 enabled = !isDeleting,
                 isLoading = isDeleting,
                 confirmColor = MaterialTheme.colorScheme.error

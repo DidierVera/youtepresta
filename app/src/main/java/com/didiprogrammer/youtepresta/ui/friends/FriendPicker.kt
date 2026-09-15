@@ -21,8 +21,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.Friend
 import com.didiprogrammer.youtepresta.ui.theme.Spacing
 
@@ -36,7 +38,7 @@ import com.didiprogrammer.youtepresta.ui.theme.Spacing
 fun FriendPicker(
     onFriendSelected: (Friend) -> Unit,
     modifier: Modifier = Modifier,
-    label: String = "Buscar o crear amigo",
+    label: String = stringResource(R.string.friend_picker_default_label),
     viewModel: FriendPickerViewModel = viewModel()
 ) {
     LaunchedEffect(Unit) { viewModel.loadFriends() }
@@ -74,7 +76,7 @@ fun FriendPicker(
             ) {
                 if (filteredFriends.isEmpty()) {
                     DropdownMenuItem(
-                        text = { Text("Crear amigo \"$query\"") },
+                        text = { Text(stringResource(R.string.friend_picker_create_option, query)) },
                         enabled = !isCreating,
                         onClick = {
                             viewModel.createFriend(query) { created ->
@@ -115,7 +117,7 @@ fun FriendPicker(
 
         if (error != null) {
             Spacer(modifier = Modifier.height(Spacing.sm))
-            Text(text = error.orEmpty(), color = MaterialTheme.colorScheme.error)
+            Text(text = stringResource(error!!), color = MaterialTheme.colorScheme.error)
         }
     }
 }

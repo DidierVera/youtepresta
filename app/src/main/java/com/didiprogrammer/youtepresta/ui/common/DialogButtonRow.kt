@@ -10,7 +10,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.ui.theme.Spacing
 
 /**
@@ -25,7 +27,7 @@ fun DialogButtonRow(
     onConfirm: () -> Unit,
     confirmText: String,
     modifier: Modifier = Modifier,
-    dismissText: String = "Cancelar",
+    dismissText: String = stringResource(R.string.common_cancel),
     enabled: Boolean = true,
     isLoading: Boolean = false,
     confirmColor: Color = Color.Unspecified

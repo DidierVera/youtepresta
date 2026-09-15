@@ -24,10 +24,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.ui.theme.Spacing
 
 @Composable
@@ -56,13 +58,13 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Iniciar sesión", style = MaterialTheme.typography.headlineSmall)
+        Text(text = stringResource(R.string.login_title), style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(Spacing.lg))
 
         OutlinedTextField(
             value = email,
             onValueChange = viewModel::onEmailChange,
-            label = { Text("Correo electrónico") },
+            label = { Text(stringResource(R.string.login_email_label)) },
             singleLine = true,
             enabled = !isLoading,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -73,14 +75,14 @@ fun LoginScreen(
         OutlinedTextField(
             value = password,
             onValueChange = viewModel::onPasswordChange,
-            label = { Text("Contraseña") },
+            label = { Text(stringResource(R.string.login_password_label)) },
             singleLine = true,
             enabled = !isLoading,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             trailingIcon = {
                 TextButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Text(if (passwordVisible) "Ocultar" else "Mostrar")
+                    Text(stringResource(if (passwordVisible) R.string.login_password_hide else R.string.login_password_show))
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -99,7 +101,7 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("Iniciar sesión")
+                Text(stringResource(R.string.login_submit_button))
             }
         }
 
@@ -107,7 +109,7 @@ fun LoginScreen(
         if (currentState is LoginUiState.Error) {
             Spacer(modifier = Modifier.height(Spacing.md))
             Text(
-                text = currentState.message,
+                text = stringResource(currentState.messageRes),
                 color = MaterialTheme.colorScheme.error
             )
         }

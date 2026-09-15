@@ -31,10 +31,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.ui.sources.formatCop
 import com.didiprogrammer.youtepresta.ui.theme.Spacing
@@ -90,10 +92,10 @@ fun RegisterPaymentSheet(
                 .padding(Spacing.lg)
                 .imePadding()
         ) {
-            Text("Registrar pago", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.payment_register_action), style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(Spacing.sm))
             Text(
-                text = "Saldo pendiente: ${formatCop(outstandingPrincipal)}",
+                text = stringResource(R.string.payment_outstanding_balance_label, formatCop(outstandingPrincipal)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -102,7 +104,7 @@ fun RegisterPaymentSheet(
             OutlinedTextField(
                 value = principalPayment,
                 onValueChange = { principalPayment = it },
-                label = { Text("Abono a capital") },
+                label = { Text(stringResource(R.string.payment_principal_label)) },
                 singleLine = true,
                 enabled = !isSaving,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -113,7 +115,7 @@ fun RegisterPaymentSheet(
             OutlinedTextField(
                 value = interestPayment,
                 onValueChange = { interestPayment = it },
-                label = { Text("Pago de interés") },
+                label = { Text(stringResource(R.string.payment_interest_label)) },
                 singleLine = true,
                 enabled = !isSaving,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -123,7 +125,7 @@ fun RegisterPaymentSheet(
 
             val total = (principalPayment.replace(",", ".").toDoubleOrNull() ?: 0.0) +
                 (interestPayment.replace(",", ".").toDoubleOrNull() ?: 0.0)
-            Text(text = "Total: ${formatCop(total)}", fontWeight = FontWeight.Bold)
+            Text(text = stringResource(R.string.payment_total_label, formatCop(total)), fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(Spacing.md))
 
             if (isLoadingSources) {
@@ -138,7 +140,7 @@ fun RegisterPaymentSheet(
                         onValueChange = {},
                         readOnly = true,
                         enabled = !isSaving,
-                        label = { Text("Bolsillo destino (capital)") },
+                        label = { Text(stringResource(R.string.payment_principal_destination_label)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = principalDropdownExpanded) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -150,7 +152,7 @@ fun RegisterPaymentSheet(
                     ) {
                         fundingSources.forEach { source ->
                             DropdownMenuItem(
-                                text = { Text("${source.name} (${formatCop(source.currentBalance)})") },
+                                text = { Text(stringResource(R.string.common_source_with_balance, source.name, formatCop(source.currentBalance))) },
                                 onClick = {
                                     principalDestination = source
                                     principalDropdownExpanded = false
@@ -162,13 +164,13 @@ fun RegisterPaymentSheet(
                 Spacer(modifier = Modifier.height(Spacing.md))
 
                 TextButton(onClick = { showMore = !showMore }) {
-                    Text(if (showMore) "Mostrar menos" else "Mostrar más")
+                    Text(stringResource(if (showMore) R.string.common_show_less else R.string.common_show_more))
                 }
 
                 if (showMore) {
                     Spacer(modifier = Modifier.height(Spacing.sm))
                     Text(
-                        text = "Bolsillo destino del interés (opcional; si no eliges uno, se usa el mismo del capital)",
+                        text = stringResource(R.string.payment_interest_destination_hint),
                         style = MaterialTheme.typography.bodySmall
                     )
                     Spacer(modifier = Modifier.height(Spacing.sm))
@@ -181,7 +183,7 @@ fun RegisterPaymentSheet(
                             onValueChange = {},
                             readOnly = true,
                             enabled = !isSaving,
-                            label = { Text("Bolsillo destino (interés)") },
+                            label = { Text(stringResource(R.string.payment_interest_destination_label)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = interestDropdownExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -193,7 +195,7 @@ fun RegisterPaymentSheet(
                         ) {
                             fundingSources.forEach { source ->
                                 DropdownMenuItem(
-                                    text = { Text("${source.name} (${formatCop(source.currentBalance)})") },
+                                    text = { Text(stringResource(R.string.common_source_with_balance, source.name, formatCop(source.currentBalance))) },
                                     onClick = {
                                         interestDestination = source
                                         interestDropdownExpanded = false
@@ -222,13 +224,13 @@ fun RegisterPaymentSheet(
                 if (isSaving) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Registrar pago")
+                    Text(stringResource(R.string.payment_register_action))
                 }
             }
 
             if (error != null) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                Text(text = error.orEmpty(), color = MaterialTheme.colorScheme.error)
+                Text(text = stringResource(error!!), color = MaterialTheme.colorScheme.error)
             }
         }
     }

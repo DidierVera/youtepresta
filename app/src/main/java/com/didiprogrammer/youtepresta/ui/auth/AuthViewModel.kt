@@ -1,7 +1,9 @@
 package com.didiprogrammer.youtepresta.ui.auth
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.repository.AuthRepository
 import com.didiprogrammer.youtepresta.data.repository.SessionState
 import kotlinx.coroutines.CancellationException
@@ -14,7 +16,7 @@ sealed interface LoginUiState {
     data object Idle : LoginUiState
     data object Loading : LoginUiState
     data object Success : LoginUiState
-    data class Error(val message: String) : LoginUiState
+    data class Error(@StringRes val messageRes: Int) : LoginUiState
 }
 
 class AuthViewModel : ViewModel() {
@@ -43,7 +45,7 @@ class AuthViewModel : ViewModel() {
         val currentPassword = _password.value
 
         if (currentEmail.isBlank() || currentPassword.isBlank()) {
-            _uiState.value = LoginUiState.Error("Ingresa tu correo y tu contraseña.")
+            _uiState.value = LoginUiState.Error(R.string.login_error_empty_fields)
             return
         }
 
@@ -55,7 +57,7 @@ class AuthViewModel : ViewModel() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _uiState.value = LoginUiState.Error("Correo o contraseña incorrectos.")
+                _uiState.value = LoginUiState.Error(R.string.login_error_invalid_credentials)
             }
         }
     }

@@ -1,7 +1,9 @@
 package com.didiprogrammer.youtepresta.ui.loans
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.Loan
 import com.didiprogrammer.youtepresta.data.repository.FriendRepository
 import com.didiprogrammer.youtepresta.data.repository.LoanRepository
@@ -13,13 +15,13 @@ import kotlinx.coroutines.launch
 
 data class LoanListItem(
     val loan: Loan,
-    val friendName: String,
+    val friendName: String?,
     val visualStatus: LoanVisualStatus
 )
 
 sealed interface LoansUiState {
     data object Loading : LoansUiState
-    data class Error(val message: String) : LoansUiState
+    data class Error(@StringRes val messageRes: Int) : LoansUiState
     data class Content(val loans: List<LoanListItem>) : LoansUiState
 }
 
@@ -47,7 +49,7 @@ class LoansViewModel : ViewModel() {
                     runCatching {
                         LoanListItem(
                             loan = loan,
-                            friendName = friendsById[loan.friendId]?.name ?: "Amigo",
+                            friendName = friendsById[loan.friendId]?.name,
                             visualStatus = visualStatusFor(loan)
                         )
                     }.getOrNull()
@@ -56,7 +58,7 @@ class LoansViewModel : ViewModel() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _uiState.value = LoansUiState.Error("No se pudieron cargar los préstamos.")
+                _uiState.value = LoansUiState.Error(R.string.loans_load_error)
             }
         }
     }

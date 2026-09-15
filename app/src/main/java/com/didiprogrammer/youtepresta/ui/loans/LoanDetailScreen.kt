@@ -31,9 +31,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.Friend
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.model.Loan
@@ -60,10 +62,10 @@ fun LoanDetailScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Detalle del préstamo") },
+                title = { Text(stringResource(R.string.loan_detail_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -84,10 +86,10 @@ fun LoanDetailScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(state.messageRes), color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(Spacing.sm))
                         Button(onClick = { viewModel.refresh() }) {
-                            Text("Reintentar")
+                            Text(stringResource(R.string.common_retry))
                         }
                     }
                 }
@@ -140,7 +142,7 @@ private fun LoanDetailContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = friend?.name ?: "Amigo",
+                    text = friend?.name ?: stringResource(R.string.common_unknown_friend),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -148,20 +150,21 @@ private fun LoanDetailContent(
             }
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            DetailRow(label = "Monto prestado", value = formatCop(loan.principalAmount))
-            DetailRow(label = "Saldo pendiente", value = formatCop(loan.outstandingPrincipal))
-            DetailRow(label = "Bolsillo de origen", value = source?.name ?: "—")
-            DetailRow(label = "Fecha del préstamo", value = formatLoanDate(loan.loanDate))
-            DetailRow(label = "Fecha tentativa de pago", value = loan.dueDate?.let { formatLoanDate(it) } ?: "—")
+            val emptyValue = stringResource(R.string.common_empty_value)
+            DetailRow(label = stringResource(R.string.loan_principal_amount_label), value = formatCop(loan.principalAmount))
+            DetailRow(label = stringResource(R.string.loan_outstanding_balance_label), value = formatCop(loan.outstandingPrincipal))
+            DetailRow(label = stringResource(R.string.loan_source_label), value = source?.name ?: emptyValue)
+            DetailRow(label = stringResource(R.string.loan_date_label), value = formatLoanDate(loan.loanDate))
+            DetailRow(label = stringResource(R.string.loan_due_date_field_label), value = loan.dueDate?.let { formatLoanDate(it) } ?: emptyValue)
 
             if (loan.interestType == InterestType.FIXED.dbValue && loan.interestValue != null) {
-                DetailRow(label = "Interés acordado (informativo)", value = "${loan.interestValue}")
+                DetailRow(label = stringResource(R.string.loan_interest_agreed_label), value = "${loan.interestValue}")
             }
 
             if (loan.status != LoanStatus.PAID) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Button(onClick = onRegisterPayment, modifier = Modifier.fillMaxWidth()) {
-                    Text("Registrar pago")
+                    Text(stringResource(R.string.payment_register_action))
                 }
             }
 
@@ -169,12 +172,12 @@ private fun LoanDetailContent(
             HorizontalDivider()
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            Text("Historial de pagos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.loan_payments_history_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
 
         if (payments.isEmpty()) {
             Text(
-                text = "Aún no se ha registrado ningún pago.",
+                text = stringResource(R.string.loan_payments_empty_state),
                 modifier = Modifier.padding(horizontal = Spacing.lg)
             )
         } else {
@@ -196,12 +199,16 @@ private fun PaymentRow(item: PaymentListItem) {
             Text(text = formatLoanDate(payment.paymentDate), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (payment.principalPayment > 0) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                PaymentAmountRow(label = "Capital", destination = item.principalDestinationName, amount = payment.principalPayment)
+                PaymentAmountRow(
+                    label = stringResource(R.string.loan_payment_capital_label),
+                    destination = item.principalDestinationName,
+                    amount = payment.principalPayment
+                )
             }
             if (payment.interestPayment > 0) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 PaymentAmountRow(
-                    label = "Interés",
+                    label = stringResource(R.string.loan_payment_interest_label),
                     destination = item.interestDestinationName ?: item.principalDestinationName,
                     amount = payment.interestPayment
                 )
@@ -219,7 +226,11 @@ private fun PaymentAmountRow(label: String, destination: String?, amount: Double
     ) {
         Column {
             Text(text = label, style = MaterialTheme.typography.bodyMedium)
-            Text(text = destination ?: "—", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = destination ?: stringResource(R.string.common_empty_value),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         Text(text = formatCop(amount), fontWeight = FontWeight.Bold)
     }

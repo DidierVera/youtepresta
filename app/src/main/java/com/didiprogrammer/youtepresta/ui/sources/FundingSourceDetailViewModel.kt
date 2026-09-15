@@ -1,12 +1,16 @@
 package com.didiprogrammer.youtepresta.ui.sources
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.model.SourceMovement
 import com.didiprogrammer.youtepresta.data.repository.FundingSourceRepository
 import com.didiprogrammer.youtepresta.data.repository.MovementType
 import com.didiprogrammer.youtepresta.data.repository.NonManualSourceMovementException
+import com.didiprogrammer.youtepresta.data.repository.SourceHasActiveLoansException
+import com.didiprogrammer.youtepresta.data.repository.SourceInUseException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,8 +19,13 @@ import kotlinx.coroutines.launch
 
 sealed interface FundingSourceDetailUiState {
     data object Loading : FundingSourceDetailUiState
-    data class Error(val message: String) : FundingSourceDetailUiState
-    data class Content(val source: FundingSource, val movements: List<SourceMovement>) : FundingSourceDetailUiState
+    data class Error(@StringRes val messageRes: Int) : FundingSourceDetailUiState
+    data class Content(
+        val source: FundingSource,
+        val movements: List<SourceMovement>,
+        val hasAnyLoan: Boolean,
+        val canArchive: Boolean
+    ) : FundingSourceDetailUiState
 }
 
 class FundingSourceDetailViewModel : ViewModel() {
@@ -35,8 +44,8 @@ class FundingSourceDetailViewModel : ViewModel() {
     private val _isSavingMovement = MutableStateFlow(false)
     val isSavingMovement: StateFlow<Boolean> = _isSavingMovement.asStateFlow()
 
-    private val _movementError = MutableStateFlow<String?>(null)
-    val movementError: StateFlow<String?> = _movementError.asStateFlow()
+    private val _movementError = MutableStateFlow<Int?>(null)
+    val movementError: StateFlow<Int?> = _movementError.asStateFlow()
 
     private val _movementPendingDelete = MutableStateFlow<SourceMovement?>(null)
     val movementPendingDelete: StateFlow<SourceMovement?> = _movementPendingDelete.asStateFlow()
@@ -44,8 +53,8 @@ class FundingSourceDetailViewModel : ViewModel() {
     private val _isDeletingMovement = MutableStateFlow(false)
     val isDeletingMovement: StateFlow<Boolean> = _isDeletingMovement.asStateFlow()
 
-    private val _deleteMovementError = MutableStateFlow<String?>(null)
-    val deleteMovementError: StateFlow<String?> = _deleteMovementError.asStateFlow()
+    private val _deleteMovementError = MutableStateFlow<Int?>(null)
+    val deleteMovementError: StateFlow<Int?> = _deleteMovementError.asStateFlow()
 
     fun load(sourceId: String) {
         if (this.sourceId == sourceId) return
@@ -60,11 +69,17 @@ class FundingSourceDetailViewModel : ViewModel() {
             try {
                 val source = FundingSourceRepository.getFundingSource(id)
                 val movements = FundingSourceRepository.getSourceMovements(id)
-                _uiState.value = FundingSourceDetailUiState.Content(source, movements)
+                val archiveStatus = FundingSourceRepository.getArchiveStatus(id)
+                _uiState.value = FundingSourceDetailUiState.Content(
+                    source = source,
+                    movements = movements,
+                    hasAnyLoan = archiveStatus.hasAnyLoan,
+                    canArchive = archiveStatus.canArchive
+                )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _uiState.value = FundingSourceDetailUiState.Error("No se pudo cargar el bolsillo.")
+                _uiState.value = FundingSourceDetailUiState.Error(R.string.source_detail_load_error)
             }
         }
     }
@@ -92,7 +107,7 @@ class FundingSourceDetailViewModel : ViewModel() {
         val amount = amountInput.replace(",", ".").toDoubleOrNull()
 
         if (amount == null || amount <= 0) {
-            _movementError.value = "El monto debe ser mayor a 0."
+            _movementError.value = R.string.common_amount_invalid_error
             return
         }
 
@@ -126,9 +141,9 @@ class FundingSourceDetailViewModel : ViewModel() {
             } catch (e: Exception) {
                 _isSavingMovement.value = false
                 _movementError.value = if (editing != null) {
-                    "No se pudo actualizar el movimiento."
+                    R.string.movement_update_error
                 } else {
-                    "No se pudo guardar el movimiento."
+                    R.string.movement_create_error
                 }
             }
         }
@@ -159,10 +174,99 @@ class FundingSourceDetailViewModel : ViewModel() {
                 throw e
             } catch (e: NonManualSourceMovementException) {
                 _isDeletingMovement.value = false
-                _deleteMovementError.value = "Este movimiento viene de un préstamo o un pago y no se puede eliminar aquí."
+                _deleteMovementError.value = R.string.movement_delete_non_manual_error
             } catch (e: Exception) {
                 _isDeletingMovement.value = false
-                _deleteMovementError.value = "No se pudo eliminar el movimiento."
+                _deleteMovementError.value = R.string.movement_delete_generic_error
+            }
+        }
+    }
+
+    private val _isProcessingArchiveAction = MutableStateFlow(false)
+    val isProcessingArchiveAction: StateFlow<Boolean> = _isProcessingArchiveAction.asStateFlow()
+
+    private val _archiveActionError = MutableStateFlow<Int?>(null)
+    val archiveActionError: StateFlow<Int?> = _archiveActionError.asStateFlow()
+
+    fun archiveSource() {
+        val id = sourceId ?: return
+        viewModelScope.launch {
+            _isProcessingArchiveAction.value = true
+            _archiveActionError.value = null
+            try {
+                FundingSourceRepository.archiveSource(id)
+                _isProcessingArchiveAction.value = false
+                refresh()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: SourceHasActiveLoansException) {
+                _isProcessingArchiveAction.value = false
+                _archiveActionError.value = R.string.source_archive_active_loans_error
+            } catch (e: Exception) {
+                _isProcessingArchiveAction.value = false
+                _archiveActionError.value = R.string.source_archive_generic_error
+            }
+        }
+    }
+
+    fun unarchiveSource() {
+        val id = sourceId ?: return
+        viewModelScope.launch {
+            _isProcessingArchiveAction.value = true
+            _archiveActionError.value = null
+            try {
+                FundingSourceRepository.unarchiveSource(id)
+                _isProcessingArchiveAction.value = false
+                refresh()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _isProcessingArchiveAction.value = false
+                _archiveActionError.value = R.string.source_unarchive_error
+            }
+        }
+    }
+
+    private val _isDeleteSourceConfirmVisible = MutableStateFlow(false)
+    val isDeleteSourceConfirmVisible: StateFlow<Boolean> = _isDeleteSourceConfirmVisible.asStateFlow()
+
+    private val _isDeletingSource = MutableStateFlow(false)
+    val isDeletingSource: StateFlow<Boolean> = _isDeletingSource.asStateFlow()
+
+    private val _deleteSourceError = MutableStateFlow<Int?>(null)
+    val deleteSourceError: StateFlow<Int?> = _deleteSourceError.asStateFlow()
+
+    private val _sourceDeleted = MutableStateFlow(false)
+    val sourceDeleted: StateFlow<Boolean> = _sourceDeleted.asStateFlow()
+
+    fun confirmDeleteSource() {
+        _deleteSourceError.value = null
+        _isDeleteSourceConfirmVisible.value = true
+    }
+
+    fun dismissDeleteSourceConfirmation() {
+        _isDeleteSourceConfirmVisible.value = false
+        _deleteSourceError.value = null
+    }
+
+    fun deleteSource() {
+        val id = sourceId ?: return
+        viewModelScope.launch {
+            _isDeletingSource.value = true
+            _deleteSourceError.value = null
+            try {
+                FundingSourceRepository.deleteSourceIfUnused(id)
+                _isDeletingSource.value = false
+                _isDeleteSourceConfirmVisible.value = false
+                _sourceDeleted.value = true
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: SourceInUseException) {
+                _isDeletingSource.value = false
+                _deleteSourceError.value = R.string.source_delete_in_use_error
+            } catch (e: Exception) {
+                _isDeletingSource.value = false
+                _deleteSourceError.value = R.string.source_delete_generic_error
             }
         }
     }

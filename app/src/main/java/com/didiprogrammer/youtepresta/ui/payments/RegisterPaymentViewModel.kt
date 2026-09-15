@@ -2,6 +2,7 @@ package com.didiprogrammer.youtepresta.ui.payments
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.repository.FundingSourceRepository
 import com.didiprogrammer.youtepresta.data.repository.PaymentRepository
@@ -22,8 +23,8 @@ class RegisterPaymentViewModel : ViewModel() {
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    private val _error = MutableStateFlow<Int?>(null)
+    val error: StateFlow<Int?> = _error.asStateFlow()
 
     private val _paymentRegistered = MutableStateFlow(false)
     val paymentRegistered: StateFlow<Boolean> = _paymentRegistered.asStateFlow()
@@ -36,7 +37,7 @@ class RegisterPaymentViewModel : ViewModel() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _error.value = "No se pudieron cargar los bolsillos."
+                _error.value = R.string.sources_load_error
             } finally {
                 _isLoadingSources.value = false
             }
@@ -54,15 +55,15 @@ class RegisterPaymentViewModel : ViewModel() {
         val interest = interestPaymentInput.replace(",", ".").toDoubleOrNull()
 
         if (principal == null || interest == null || principal < 0 || interest < 0) {
-            _error.value = "Los montos deben ser números válidos y no negativos."
+            _error.value = R.string.payment_amounts_invalid_error
             return
         }
         if (principal == 0.0 && interest == 0.0) {
-            _error.value = "Registra al menos un abono a capital o de interés mayor a 0."
+            _error.value = R.string.payment_amount_zero_error
             return
         }
         if (principalDestination == null) {
-            _error.value = "Elige el bolsillo destino del capital."
+            _error.value = R.string.payment_principal_destination_required_error
             return
         }
 
@@ -83,7 +84,7 @@ class RegisterPaymentViewModel : ViewModel() {
                 throw e
             } catch (e: Exception) {
                 _isSaving.value = false
-                _error.value = "No se pudo registrar el pago."
+                _error.value = R.string.payment_register_generic_error
             }
         }
     }

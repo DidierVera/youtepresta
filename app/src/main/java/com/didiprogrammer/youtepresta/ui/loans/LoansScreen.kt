@@ -32,8 +32,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.ui.sources.formatCop
 import com.didiprogrammer.youtepresta.ui.theme.Spacing
 
@@ -54,17 +56,17 @@ fun LoansScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Préstamos") },
+                title = { Text(stringResource(R.string.loans_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onNewLoan) {
-                Icon(Icons.Filled.Add, contentDescription = "Nuevo préstamo")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.loans_new_fab))
             }
         }
     ) { innerPadding ->
@@ -83,10 +85,10 @@ fun LoansScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(state.messageRes), color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(Spacing.sm))
                         Button(onClick = { viewModel.loadLoans() }) {
-                            Text("Reintentar")
+                            Text(stringResource(R.string.common_retry))
                         }
                     }
                 }
@@ -97,7 +99,7 @@ fun LoansScreen(
                         modifier = Modifier.fillMaxSize().padding(innerPadding),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Aún no tienes préstamos. Crea el primero con el botón +.")
+                        Text(stringResource(R.string.loans_empty_state))
                     }
                 } else {
                     LazyColumn(
@@ -128,11 +130,15 @@ private fun LoanRow(item: LoanListItem, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(text = item.friendName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    text = item.friendName ?: stringResource(R.string.common_unknown_friend),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
                 item.loan.dueDate?.let { dueDate ->
                     Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(
-                        text = "Vence: ${formatLoanDate(dueDate)}",
+                        text = stringResource(R.string.loan_due_date_label, formatLoanDate(dueDate)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

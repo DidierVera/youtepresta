@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.didiprogrammer.youtepresta.ui.theme.Spacing
@@ -38,7 +39,7 @@ fun StatusBadge(status: LoanVisualStatus, modifier: Modifier = Modifier) {
             .padding(horizontal = Spacing.sm + 2.dp, vertical = Spacing.xs + 2.dp)
     ) {
         Text(
-            text = status.label,
+            text = stringResource(status.labelRes),
             color = contentColor,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold

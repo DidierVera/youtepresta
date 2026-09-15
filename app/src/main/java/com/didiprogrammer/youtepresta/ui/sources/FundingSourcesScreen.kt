@@ -1,5 +1,6 @@
 package com.didiprogrammer.youtepresta.ui.sources
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,9 +13,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,6 +35,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -43,10 +47,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.ui.theme.Spacing
 
@@ -61,70 +67,81 @@ fun FundingSourcesScreen(
     LaunchedEffect(Unit) { viewModel.loadFundingSources() }
 
     val uiState by viewModel.uiState.collectAsState()
+    val showArchived by viewModel.showArchived.collectAsState()
     val isCreateSheetVisible by viewModel.isCreateSheetVisible.collectAsState()
 
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Bolsillos") },
+                title = { Text(stringResource(R.string.sources_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { viewModel.showCreateSheet() }) {
-                Icon(Icons.Filled.Add, contentDescription = "Crear bolsillo")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.sources_create_fab))
             }
         }
     ) { innerPadding ->
-        when (val state = uiState) {
-            is FundingSourcesUiState.Loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(innerPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            TextButton(
+                onClick = { viewModel.toggleShowArchived() },
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(horizontal = Spacing.md)
+            ) {
+                Text(stringResource(if (showArchived) R.string.sources_view_active else R.string.sources_view_archived))
             }
-            is FundingSourcesUiState.Error -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(innerPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.height(Spacing.sm))
-                        Button(onClick = { viewModel.loadFundingSources() }) {
-                            Text("Reintentar")
+
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                when (val state = uiState) {
+                    is FundingSourcesUiState.Loading -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
                         }
                     }
-                }
-            }
-            is FundingSourcesUiState.Content -> {
-                if (state.sources.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize().padding(innerPadding),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Aún no tienes bolsillos. Crea el primero con el botón +.")
+                    is FundingSourcesUiState.Error -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(stringResource(state.messageRes), color = MaterialTheme.colorScheme.error)
+                                Spacer(modifier = Modifier.height(Spacing.sm))
+                                Button(onClick = { viewModel.loadFundingSources() }) {
+                                    Text(stringResource(R.string.common_retry))
+                                }
+                            }
+                        }
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                        contentPadding = PaddingValues(Spacing.md)
-                    ) {
-                        items(state.sources, key = { it.id }) { source ->
-                            FundingSourceRow(
-                                source = source,
-                                onClick = { onSourceClick(source.id) }
-                            )
-                            Spacer(modifier = Modifier.height(Spacing.sm))
+                    is FundingSourcesUiState.Content -> {
+                        if (state.sources.isEmpty()) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(
+                                    stringResource(
+                                        if (showArchived) R.string.sources_archived_empty_state else R.string.sources_empty_state
+                                    )
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(Spacing.md)
+                            ) {
+                                items(state.sources, key = { it.id }) { source ->
+                                    FundingSourceRow(
+                                        source = source,
+                                        onClick = { onSourceClick(source.id) }
+                                    )
+                                    Spacer(modifier = Modifier.height(Spacing.sm))
+                                }
+                            }
                         }
                     }
                 }
@@ -147,7 +164,23 @@ private fun FundingSourceRow(source: FundingSource, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = source.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = source.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                if (source.isArchived) {
+                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Text(
+                        text = stringResource(R.string.source_archived_badge),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(Spacing.sm)
+                            )
+                            .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                    )
+                }
+            }
             Text(text = formatCop(source.currentBalance), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
     }
@@ -174,13 +207,13 @@ private fun CreateFundingSourceSheet(viewModel: FundingSourcesViewModel) {
                 .padding(Spacing.lg)
                 .imePadding()
         ) {
-            Text("Nuevo bolsillo", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.source_create_sheet_title), style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(Spacing.md))
 
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Nombre") },
+                label = { Text(stringResource(R.string.common_name_label)) },
                 singleLine = true,
                 enabled = !isCreating,
                 modifier = Modifier.fillMaxWidth()
@@ -190,7 +223,7 @@ private fun CreateFundingSourceSheet(viewModel: FundingSourcesViewModel) {
             OutlinedTextField(
                 value = initialBalance,
                 onValueChange = { initialBalance = it },
-                label = { Text("Saldo inicial (opcional)") },
+                label = { Text(stringResource(R.string.source_initial_balance_label)) },
                 singleLine = true,
                 enabled = !isCreating,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -206,13 +239,13 @@ private fun CreateFundingSourceSheet(viewModel: FundingSourcesViewModel) {
                 if (isCreating) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Crear")
+                    Text(stringResource(R.string.common_create))
                 }
             }
 
             if (createError != null) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                Text(text = createError.orEmpty(), color = MaterialTheme.colorScheme.error)
+                Text(text = stringResource(createError!!), color = MaterialTheme.colorScheme.error)
             }
         }
     }

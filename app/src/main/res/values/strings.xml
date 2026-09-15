@@ -1,3 +1,170 @@
 <resources>
     <string name="app_name">YouTePresta</string>
+
+    <!-- Common / shared across features -->
+    <string name="common_back">Volver</string>
+    <string name="common_cancel">Cancelar</string>
+    <string name="common_save">Guardar</string>
+    <string name="common_create">Crear</string>
+    <string name="common_delete">Eliminar</string>
+    <string name="common_retry">Reintentar</string>
+    <string name="common_show_more">Mostrar más</string>
+    <string name="common_show_less">Mostrar menos</string>
+    <string name="common_name_label">Nombre</string>
+    <string name="common_amount_label">Monto</string>
+    <string name="common_name_required_error">El nombre es obligatorio.</string>
+    <string name="common_amount_invalid_error">El monto debe ser mayor a 0.</string>
+    <string name="common_unknown_friend">Amigo</string>
+    <string name="common_empty_value">—</string>
+    <string name="common_plus_symbol">+</string>
+    <string name="common_source_with_balance">%1$s (%2$s)</string>
+
+    <!-- Auth / Login -->
+    <string name="login_title">Iniciar sesión</string>
+    <string name="login_email_label">Correo electrónico</string>
+    <string name="login_password_label">Contraseña</string>
+    <string name="login_password_show">Mostrar</string>
+    <string name="login_password_hide">Ocultar</string>
+    <string name="login_submit_button">Iniciar sesión</string>
+    <string name="login_error_empty_fields">Ingresa tu correo y tu contraseña.</string>
+    <string name="login_error_invalid_credentials">Correo o contraseña incorrectos.</string>
+
+    <!-- Home dashboard -->
+    <string name="home_title">Loans Tracker</string>
+    <string name="home_sign_out">Cerrar sesión</string>
+    <plurals name="home_sources_count">
+        <item quantity="one">%d bolsillo</item>
+        <item quantity="other">%d bolsillos</item>
+    </plurals>
+    <plurals name="home_friends_count">
+        <item quantity="one">%d amigo</item>
+        <item quantity="other">%d amigos</item>
+    </plurals>
+    <plurals name="home_loans_count">
+        <item quantity="one">%d activo</item>
+        <item quantity="other">%d activos</item>
+    </plurals>
+    <string name="home_due_loans_banner">Tienes %1$d cobros pendientes hoy</string>
+    <string name="home_due_loans_banner_dismiss">Descartar</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_name">Recordatorios de préstamos</string>
+    <string name="notification_channel_description">Avisa cuando un préstamo vence hoy o sigue atrasado</string>
+    <string name="notification_single_title">Cobro pendiente: %1$s</string>
+    <string name="notification_single_body">Vence hoy o está atrasado — saldo pendiente %1$s</string>
+    <string name="notification_multiple_title">Tienes %1$d cobros pendientes</string>
+
+    <!-- Friends -->
+    <string name="friends_title">Amigos</string>
+    <string name="friends_create_fab">Crear amigo</string>
+    <string name="friends_load_error">No se pudieron cargar los amigos.</string>
+    <string name="friends_empty_state">Aún no tienes amigos. Crea el primero con el botón +.</string>
+    <string name="friend_edit_icon">Editar amigo</string>
+    <string name="friend_delete_icon">Eliminar amigo</string>
+    <string name="friend_dialog_title_edit">Editar amigo</string>
+    <string name="friend_dialog_title_create">Nuevo amigo</string>
+    <string name="friend_phone_label">Teléfono (opcional)</string>
+    <string name="friend_notes_label">Notas (opcional)</string>
+    <string name="friend_update_error">No se pudo actualizar el amigo.</string>
+    <string name="friend_create_error">No se pudo crear el amigo.</string>
+    <string name="friend_delete_title">Eliminar amigo</string>
+    <string name="friend_delete_confirm_message">¿Seguro que quieres eliminar a %1$s? Esta acción no se puede deshacer.</string>
+    <string name="friend_has_loans_error">No puedes eliminar un amigo con préstamos registrados.</string>
+    <string name="friend_delete_generic_error">No se pudo eliminar el amigo.</string>
+    <string name="friend_picker_default_label">Buscar o crear amigo</string>
+    <string name="friend_picker_create_option">Crear amigo \"%1$s\"</string>
+
+    <!-- Funding sources (bolsillos) -->
+    <string name="sources_title">Bolsillos</string>
+    <string name="sources_create_fab">Crear bolsillo</string>
+    <string name="sources_load_error">No se pudieron cargar los bolsillos.</string>
+    <string name="sources_empty_state">Aún no tienes bolsillos. Crea el primero con el botón +.</string>
+    <string name="sources_view_archived">Ver archivados</string>
+    <string name="sources_view_active">Ver activos</string>
+    <string name="sources_archived_empty_state">No tienes bolsillos archivados.</string>
+    <string name="source_create_sheet_title">Nuevo bolsillo</string>
+    <string name="source_initial_balance_label">Saldo inicial (opcional)</string>
+    <string name="source_create_error">No se pudo crear el bolsillo.</string>
+    <string name="source_initial_balance_invalid_error">El saldo inicial debe ser un número válido.</string>
+    <string name="source_detail_title">Detalle del bolsillo</string>
+    <string name="source_detail_load_error">No se pudo cargar el bolsillo.</string>
+    <string name="source_detail_empty_state">Este bolsillo todavía no tiene movimientos.</string>
+    <string name="source_movement_reference_loan">Préstamo</string>
+    <string name="source_movement_reference_payment">Pago</string>
+    <string name="source_archived_badge">Archivado</string>
+    <string name="source_archive_button">Archivar</string>
+    <string name="source_unarchive_button">Reactivar</string>
+    <string name="source_archive_blocked_message">Este bolsillo tiene préstamos activos o parciales; espera a que se paguen para poder archivarlo.</string>
+    <string name="source_archive_active_loans_error">Este bolsillo tiene préstamos activos o parciales y no se puede archivar todavía.</string>
+    <string name="source_archive_generic_error">No se pudo archivar el bolsillo.</string>
+    <string name="source_unarchive_error">No se pudo reactivar el bolsillo.</string>
+    <string name="source_delete_title">Eliminar bolsillo</string>
+    <string name="source_delete_confirm_message">¿Seguro que quieres eliminar \"%1$s\"? Esta acción no se puede deshacer.</string>
+    <string name="source_delete_in_use_error">Este bolsillo tiene historial de préstamos o pagos y no se puede eliminar; archívalo en su lugar.</string>
+    <string name="source_delete_generic_error">No se pudo eliminar el bolsillo.</string>
+    <string name="movement_edit_icon">Editar movimiento</string>
+    <string name="movement_delete_icon">Eliminar movimiento</string>
+    <string name="movement_sheet_title_edit">Editar movimiento</string>
+    <string name="movement_sheet_title_add">Agregar dinero</string>
+    <string name="movement_type_income_button">Agregar</string>
+    <string name="movement_type_outflow_button">Retirar</string>
+    <string name="movement_notes_label">Nota (opcional)</string>
+    <string name="movement_update_error">No se pudo actualizar el movimiento.</string>
+    <string name="movement_create_error">No se pudo guardar el movimiento.</string>
+    <string name="movement_delete_title">Eliminar movimiento</string>
+    <string name="movement_delete_confirm_message">¿Seguro que quieres eliminar este movimiento de %1$s? Esta acción no se puede deshacer.</string>
+    <string name="movement_delete_non_manual_error">Este movimiento viene de un préstamo o un pago y no se puede eliminar aquí.</string>
+    <string name="movement_delete_generic_error">No se pudo eliminar el movimiento.</string>
+
+    <!-- Loans -->
+    <string name="loans_title">Préstamos</string>
+    <string name="loans_new_fab">Nuevo préstamo</string>
+    <string name="loans_load_error">No se pudieron cargar los préstamos.</string>
+    <string name="loans_empty_state">Aún no tienes préstamos. Crea el primero con el botón +.</string>
+    <string name="loan_due_date_label">Vence: %1$s</string>
+    <string name="loan_status_paid">Pagado</string>
+    <string name="loan_status_overdue">Atrasado</string>
+    <string name="loan_status_due_today">Vence hoy</string>
+    <string name="loan_status_on_track">Al día</string>
+    <string name="loan_detail_title">Detalle del préstamo</string>
+    <string name="loan_detail_load_error">No se pudo cargar el préstamo.</string>
+    <string name="loan_principal_amount_label">Monto prestado</string>
+    <string name="loan_outstanding_balance_label">Saldo pendiente</string>
+    <string name="loan_source_label">Bolsillo de origen</string>
+    <string name="loan_date_label">Fecha del préstamo</string>
+    <string name="loan_due_date_field_label">Fecha tentativa de pago</string>
+    <string name="loan_interest_agreed_label">Interés acordado (informativo)</string>
+    <string name="loan_payments_history_title">Historial de pagos</string>
+    <string name="loan_payments_empty_state">Aún no se ha registrado ningún pago.</string>
+    <string name="loan_payment_capital_label">Capital</string>
+    <string name="loan_payment_interest_label">Interés</string>
+    <string name="loan_new_title">Nuevo préstamo</string>
+    <string name="loan_amount_exceeds_balance_error">El monto supera el saldo actual del bolsillo (%1$s).</string>
+    <string name="loan_pick_date_icon">Elegir fecha</string>
+    <string name="loan_interest_section_label">Interés (solo informativo, no se calcula automáticamente)</string>
+    <string name="loan_interest_type_none">Ninguno</string>
+    <string name="loan_interest_type_fixed">Fijo</string>
+    <string name="loan_interest_value_label">Valor acordado (%, solo para recordar)</string>
+    <string name="loan_save_button">Guardar préstamo</string>
+    <string name="loan_date_picker_confirm">Aceptar</string>
+    <string name="loan_friend_required_error">Elige o crea un amigo.</string>
+    <string name="loan_source_required_error">Elige un bolsillo de origen.</string>
+    <string name="loan_due_date_required_error">Elige la fecha tentativa de pago.</string>
+    <string name="loan_interest_value_invalid_error">El valor del interés debe ser mayor a 0.</string>
+    <string name="loan_create_source_movement_error">El préstamo se creó, pero no se pudo descontar el bolsillo de origen. Revísalo manualmente en la lista de préstamos y en el historial del bolsillo antes de intentarlo de nuevo.</string>
+    <string name="loan_create_generic_error">No se pudo crear el préstamo.</string>
+
+    <!-- Payments -->
+    <string name="payment_register_action">Registrar pago</string>
+    <string name="payment_outstanding_balance_label">Saldo pendiente: %1$s</string>
+    <string name="payment_principal_label">Abono a capital</string>
+    <string name="payment_interest_label">Pago de interés</string>
+    <string name="payment_total_label">Total: %1$s</string>
+    <string name="payment_principal_destination_label">Bolsillo destino (capital)</string>
+    <string name="payment_interest_destination_label">Bolsillo destino (interés)</string>
+    <string name="payment_interest_destination_hint">Bolsillo destino del interés (opcional; si no eliges uno, se usa el mismo del capital)</string>
+    <string name="payment_amounts_invalid_error">Los montos deben ser números válidos y no negativos.</string>
+    <string name="payment_amount_zero_error">Registra al menos un abono a capital o de interés mayor a 0.</string>
+    <string name="payment_principal_destination_required_error">Elige el bolsillo destino del capital.</string>
+    <string name="payment_register_generic_error">No se pudo registrar el pago.</string>
 </resources>

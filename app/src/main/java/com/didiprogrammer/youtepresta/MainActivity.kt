@@ -1,19 +1,30 @@
 package com.didiprogrammer.youtepresta
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -23,6 +34,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.didiprogrammer.youtepresta.data.repository.SessionState
+import com.didiprogrammer.youtepresta.notification.NotificationHelper
+import com.didiprogrammer.youtepresta.notification.NotificationScheduler
 import com.didiprogrammer.youtepresta.ui.auth.AuthViewModel
 import com.didiprogrammer.youtepresta.ui.auth.LoginScreen
 import com.didiprogrammer.youtepresta.ui.friends.FriendsScreen
@@ -47,24 +60,73 @@ private const val ARG_LOAN_ID = "loanId"
 // with the static "loans/new" route.
 private const val ROUTE_LOAN_DETAIL = "loan/{$ARG_LOAN_ID}"
 
+/** What to navigate to once the NavHost is ready, read from the Intent that opened/resumed the activity. */
+private sealed interface PendingNavigation {
+    data class LoanDetail(val loanId: String) : PendingNavigation
+    data object LoansList : PendingNavigation
+}
+
+private fun Intent.toPendingNavigation(): PendingNavigation? {
+    val loanId = getStringExtra(NotificationHelper.EXTRA_LOAN_ID)
+    return when {
+        loanId != null -> PendingNavigation.LoanDetail(loanId)
+        getBooleanExtra(NotificationHelper.EXTRA_SHOW_LOANS_LIST, false) -> PendingNavigation.LoansList
+        else -> null
+    }
+}
+
 class MainActivity : ComponentActivity() {
+    private var pendingNavigation by mutableStateOf<PendingNavigation?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        pendingNavigation = intent.toPendingNavigation()
         setContent {
             YouTePrestaTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    AppRoot(modifier = Modifier.padding(innerPadding))
+                    AppRoot(
+                        modifier = Modifier.padding(innerPadding),
+                        pendingNavigation = pendingNavigation,
+                        onPendingNavigationConsumed = { pendingNavigation = null }
+                    )
                 }
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pendingNavigation = intent.toPendingNavigation()
+    }
 }
 
 @Composable
-private fun AppRoot(modifier: Modifier = Modifier) {
+private fun AppRoot(
+    modifier: Modifier = Modifier,
+    pendingNavigation: PendingNavigation? = null,
+    onPendingNavigationConsumed: () -> Unit = {}
+) {
     val authViewModel: AuthViewModel = viewModel()
     val sessionState by authViewModel.sessionState.collectAsState()
+    val context = LocalContext.current
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
+
+    LaunchedEffect(sessionState) {
+        if (sessionState == SessionState.AUTHENTICATED) {
+            NotificationScheduler.schedule(context)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                    PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
 
     when (sessionState) {
         SessionState.LOADING -> {
@@ -75,6 +137,16 @@ private fun AppRoot(modifier: Modifier = Modifier) {
         SessionState.AUTHENTICATED, SessionState.UNAUTHENTICATED -> {
             val navController = rememberNavController()
             val startDestination = if (sessionState == SessionState.AUTHENTICATED) ROUTE_HOME else ROUTE_LOGIN
+
+            LaunchedEffect(sessionState, pendingNavigation) {
+                if (sessionState == SessionState.AUTHENTICATED && pendingNavigation != null) {
+                    when (pendingNavigation) {
+                        is PendingNavigation.LoanDetail -> navController.navigate("loan/${pendingNavigation.loanId}")
+                        PendingNavigation.LoansList -> navController.navigate(ROUTE_LOANS)
+                    }
+                    onPendingNavigationConsumed()
+                }
+            }
 
             NavHost(
                 navController = navController,

@@ -42,9 +42,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.Friend
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.repository.InterestType
@@ -88,10 +90,10 @@ fun NewLoanScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Nuevo préstamo") },
+                title = { Text(stringResource(R.string.loan_new_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -110,7 +112,7 @@ fun NewLoanScreen(
             OutlinedTextField(
                 value = amount,
                 onValueChange = { amount = it },
-                label = { Text("Monto") },
+                label = { Text(stringResource(R.string.common_amount_label)) },
                 singleLine = true,
                 enabled = !isSaving,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -123,7 +125,7 @@ fun NewLoanScreen(
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 }
                 is FundingSourcesLoadState.Error -> {
-                    Text(state.message, color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(state.messageRes), color = MaterialTheme.colorScheme.error)
                 }
                 is FundingSourcesLoadState.Content -> {
                     ExposedDropdownMenuBox(
@@ -135,7 +137,7 @@ fun NewLoanScreen(
                             onValueChange = {},
                             readOnly = true,
                             enabled = !isSaving,
-                            label = { Text("Bolsillo de origen") },
+                            label = { Text(stringResource(R.string.loan_source_label)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sourceDropdownExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -147,7 +149,7 @@ fun NewLoanScreen(
                         ) {
                             state.sources.forEach { source ->
                                 DropdownMenuItem(
-                                    text = { Text("${source.name} (${formatCop(source.currentBalance)})") },
+                                    text = { Text(stringResource(R.string.common_source_with_balance, source.name, formatCop(source.currentBalance))) },
                                     onClick = {
                                         selectedSource = source
                                         sourceDropdownExpanded = false
@@ -162,7 +164,7 @@ fun NewLoanScreen(
                     if (source != null && amountValue != null && amountValue > source.currentBalance) {
                         Spacer(modifier = Modifier.height(Spacing.sm))
                         Text(
-                            text = "El monto supera el saldo actual del bolsillo (${formatCop(source.currentBalance)}).",
+                            text = stringResource(R.string.loan_amount_exceeds_balance_error, formatCop(source.currentBalance)),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -176,10 +178,10 @@ fun NewLoanScreen(
                 onValueChange = {},
                 readOnly = true,
                 enabled = !isSaving,
-                label = { Text("Fecha tentativa de pago") },
+                label = { Text(stringResource(R.string.loan_due_date_field_label)) },
                 trailingIcon = {
                     IconButton(onClick = { showDatePicker = true }) {
-                        Icon(Icons.Filled.DateRange, contentDescription = "Elegir fecha")
+                        Icon(Icons.Filled.DateRange, contentDescription = stringResource(R.string.loan_pick_date_icon))
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -187,12 +189,12 @@ fun NewLoanScreen(
             Spacer(modifier = Modifier.height(Spacing.md))
 
             TextButton(onClick = { showMore = !showMore }) {
-                Text(if (showMore) "Mostrar menos" else "Mostrar más")
+                Text(stringResource(if (showMore) R.string.common_show_less else R.string.common_show_more))
             }
 
             if (showMore) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                Text("Interés (solo informativo, no se calcula automáticamente)", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.loan_interest_section_label), style = MaterialTheme.typography.bodySmall)
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
                 Row(modifier = Modifier.fillMaxWidth()) {
@@ -206,7 +208,7 @@ fun NewLoanScreen(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Ninguno")
+                        Text(stringResource(R.string.loan_interest_type_none))
                     }
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Button(
@@ -219,7 +221,7 @@ fun NewLoanScreen(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Fijo")
+                        Text(stringResource(R.string.loan_interest_type_fixed))
                     }
                 }
 
@@ -228,7 +230,7 @@ fun NewLoanScreen(
                     OutlinedTextField(
                         value = interestValue,
                         onValueChange = { interestValue = it },
-                        label = { Text("Valor acordado (%, solo para recordar)") },
+                        label = { Text(stringResource(R.string.loan_interest_value_label)) },
                         singleLine = true,
                         enabled = !isSaving,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -255,13 +257,13 @@ fun NewLoanScreen(
                 if (isSaving) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Guardar préstamo")
+                    Text(stringResource(R.string.loan_save_button))
                 }
             }
 
             if (error != null) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                Text(text = error.orEmpty(), color = MaterialTheme.colorScheme.error)
+                Text(text = stringResource(error!!), color = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -282,12 +284,12 @@ fun NewLoanScreen(
                     }
                     showDatePicker = false
                 }) {
-                    Text("Aceptar")
+                    Text(stringResource(R.string.loan_date_picker_confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancelar")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         ) {

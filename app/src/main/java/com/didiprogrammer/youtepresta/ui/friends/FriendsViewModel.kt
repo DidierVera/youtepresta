@@ -1,7 +1,9 @@
 package com.didiprogrammer.youtepresta.ui.friends
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.Friend
 import com.didiprogrammer.youtepresta.data.repository.FriendHasLoansException
 import com.didiprogrammer.youtepresta.data.repository.FriendRepository
@@ -13,7 +15,7 @@ import kotlinx.coroutines.launch
 
 sealed interface FriendsUiState {
     data object Loading : FriendsUiState
-    data class Error(val message: String) : FriendsUiState
+    data class Error(@StringRes val messageRes: Int) : FriendsUiState
     data class Content(val friends: List<Friend>) : FriendsUiState
 }
 
@@ -31,8 +33,8 @@ class FriendsViewModel : ViewModel() {
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
-    private val _saveError = MutableStateFlow<String?>(null)
-    val saveError: StateFlow<String?> = _saveError.asStateFlow()
+    private val _saveError = MutableStateFlow<Int?>(null)
+    val saveError: StateFlow<Int?> = _saveError.asStateFlow()
 
     private val _friendPendingDelete = MutableStateFlow<Friend?>(null)
     val friendPendingDelete: StateFlow<Friend?> = _friendPendingDelete.asStateFlow()
@@ -40,8 +42,8 @@ class FriendsViewModel : ViewModel() {
     private val _isDeleting = MutableStateFlow(false)
     val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
 
-    private val _deleteError = MutableStateFlow<String?>(null)
-    val deleteError: StateFlow<String?> = _deleteError.asStateFlow()
+    private val _deleteError = MutableStateFlow<Int?>(null)
+    val deleteError: StateFlow<Int?> = _deleteError.asStateFlow()
 
     fun loadFriends() {
         viewModelScope.launch {
@@ -52,7 +54,7 @@ class FriendsViewModel : ViewModel() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _uiState.value = FriendsUiState.Error("No se pudieron cargar los amigos.")
+                _uiState.value = FriendsUiState.Error(R.string.friends_load_error)
             }
         }
     }
@@ -78,7 +80,7 @@ class FriendsViewModel : ViewModel() {
     fun saveFriend(name: String, phone: String, notes: String) {
         val trimmedName = name.trim()
         if (trimmedName.isBlank()) {
-            _saveError.value = "El nombre es obligatorio."
+            _saveError.value = R.string.common_name_required_error
             return
         }
 
@@ -113,9 +115,9 @@ class FriendsViewModel : ViewModel() {
             } catch (e: Exception) {
                 _isSaving.value = false
                 _saveError.value = if (editing != null) {
-                    "No se pudo actualizar el amigo."
+                    R.string.friend_update_error
                 } else {
-                    "No se pudo crear el amigo."
+                    R.string.friend_create_error
                 }
             }
         }
@@ -146,10 +148,10 @@ class FriendsViewModel : ViewModel() {
                 throw e
             } catch (e: FriendHasLoansException) {
                 _isDeleting.value = false
-                _deleteError.value = "No puedes eliminar un amigo con préstamos registrados."
+                _deleteError.value = R.string.friend_has_loans_error
             } catch (e: Exception) {
                 _isDeleting.value = false
-                _deleteError.value = "No se pudo eliminar el amigo."
+                _deleteError.value = R.string.friend_delete_generic_error
             }
         }
     }

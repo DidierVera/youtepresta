@@ -27,6 +27,14 @@ class HomeViewModel : ViewModel() {
     private val _activeLoansCount = MutableStateFlow<Int?>(null)
     val activeLoansCount: StateFlow<Int?> = _activeLoansCount.asStateFlow()
 
+    /**
+     * Backup for the daily notification in case WorkManager defers today's run: how many loans
+     * are due today or overdue, shown as a dismissible banner. Null while unknown/loading so the
+     * banner stays hidden rather than flashing "0".
+     */
+    private val _dueLoansCount = MutableStateFlow<Int?>(null)
+    val dueLoansCount: StateFlow<Int?> = _dueLoansCount.asStateFlow()
+
     fun loadCounts() {
         viewModelScope.launch {
             try {
@@ -53,6 +61,15 @@ class HomeViewModel : ViewModel() {
                 throw e
             } catch (e: Exception) {
                 _activeLoansCount.value = null
+            }
+        }
+        viewModelScope.launch {
+            try {
+                _dueLoansCount.value = LoanRepository.getLoansDueTodayOrOverdue().size
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _dueLoansCount.value = null
             }
         }
     }

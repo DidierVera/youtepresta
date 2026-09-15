@@ -9,5 +9,7 @@ data class FundingSource(
     @SerialName("user_id") val userId: String,
     val name: String,
     @SerialName("current_balance") val currentBalance: Double,
-    @SerialName("created_at") val createdAt: String
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("is_archived") val isArchived: Boolean = false,
+    @SerialName("archived_at") val archivedAt: String? = null
 )

@@ -1,5 +1,7 @@
 package com.didiprogrammer.youtepresta.ui.loans
 
+import androidx.annotation.StringRes
+import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.Loan
 import com.didiprogrammer.youtepresta.data.repository.LoanStatus
 import java.time.LocalDate
@@ -12,11 +14,11 @@ import java.util.Locale
  * payments are recorded in Phase 5); "overdue" here is computed from due_date each time the
  * screen is drawn.
  */
-enum class LoanVisualStatus(val label: String) {
-    PAID("Pagado"),
-    OVERDUE("Atrasado"),
-    DUE_TODAY("Vence hoy"),
-    ON_TRACK("Al día")
+enum class LoanVisualStatus(@StringRes val labelRes: Int) {
+    PAID(R.string.loan_status_paid),
+    OVERDUE(R.string.loan_status_overdue),
+    DUE_TODAY(R.string.loan_status_due_today),
+    ON_TRACK(R.string.loan_status_on_track)
 }
 
 fun visualStatusFor(loan: Loan, today: LocalDate = LocalDate.now()): LoanVisualStatus {

@@ -10,6 +10,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 enum class InterestType(val dbValue: String) {
     NONE("none"),
@@ -58,6 +60,38 @@ object LoanRepository {
                 filter { Loan::id eq loanId }
             }
             .decodeSingle()
+
+    /**
+     * Loans that need a collection reminder today: due today or already overdue, and still not
+     * fully paid off. Used by both [com.didiprogrammer.youtepresta.notification.DailyLoanCheckWorker]
+     * and the Home dashboard's backup banner.
+     */
+    suspend fun getLoansDueTodayOrOverdue(): List<Loan> {
+        val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val result = postgrest.from(TABLE_LOANS)
+            .select {
+                filter {
+                    Loan::dueDate lte today
+                    Loan::status isIn listOf(LoanStatus.ACTIVE, LoanStatus.PARTIAL)
+                }
+                order("due_date", Order.ASCENDING)
+            }
+        return lenientJson.parseToJsonElement(result.data).jsonArray.mapNotNull { row ->
+            runCatching { lenientJson.decodeFromJsonElement<Loan>(row) }.getOrNull()
+        }
+    }
+
+    /**
+     * All loans (any status) that originated from the given funding source — used by
+     * [FundingSourceRepository] to decide whether a source can be archived (no active/partial
+     * loans) or truly deleted (no loans at all, so nothing references it for traceability).
+     */
+    suspend fun getLoansBySource(sourceId: String): List<Loan> =
+        postgrest.from(TABLE_LOANS)
+            .select {
+                filter { Loan::sourceId eq sourceId }
+            }
+            .decodeList()
 
     suspend fun createLoan(
         friendId: String,

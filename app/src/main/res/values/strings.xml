@@ -153,6 +153,16 @@
     <string name="loan_interest_value_invalid_error">El valor del interés debe ser mayor a 0.</string>
     <string name="loan_create_source_movement_error">El préstamo se creó, pero no se pudo descontar el bolsillo de origen. Revísalo manualmente en la lista de préstamos y en el historial del bolsillo antes de intentarlo de nuevo.</string>
     <string name="loan_create_generic_error">No se pudo crear el préstamo.</string>
+    <string name="loan_extended_chip">Con prórroga</string>
+    <string name="loan_extend_action">Registrar prórroga</string>
+    <string name="loan_extend_dialog_title">Registrar prórroga</string>
+    <string name="loan_extend_new_due_date_label">Nueva fecha tentativa de pago</string>
+    <string name="loan_extend_notes_label">Nota (opcional)</string>
+    <string name="loan_extend_date_required_error">Elige la nueva fecha tentativa de pago.</string>
+    <string name="loan_extend_save_button">Guardar prórroga</string>
+    <string name="loan_extend_generic_error">No se pudo registrar la prórroga.</string>
+    <string name="loan_due_date_changes_title">Historial de prórrogas</string>
+    <string name="loan_due_date_change_dates">%1$s → %2$s</string>
 
     <!-- Payments -->
     <string name="payment_register_action">Registrar pago</string>

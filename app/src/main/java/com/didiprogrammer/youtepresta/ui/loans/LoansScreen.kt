@@ -151,7 +151,15 @@ private fun LoanRow(item: LoanListItem, onClick: () -> Unit) {
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(Spacing.xs))
-                StatusBadge(status = item.visualStatus)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (item.loan.hasBeenExtended) {
+                        ExtendedChip()
+                    }
+                    StatusBadge(status = item.visualStatus)
+                }
             }
         }
     }

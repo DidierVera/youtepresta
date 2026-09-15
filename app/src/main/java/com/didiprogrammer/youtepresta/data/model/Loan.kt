@@ -17,5 +17,6 @@ data class Loan(
     @SerialName("outstanding_principal") val outstandingPrincipal: Double,
     val status: String,
     val notes: String? = null,
+    @SerialName("has_been_extended") val hasBeenExtended: Boolean = false,
     @SerialName("created_at") val createdAt: String
 )

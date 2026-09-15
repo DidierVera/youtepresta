@@ -3,32 +3,42 @@ package com.didiprogrammer.youtepresta.ui.loans
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -39,11 +49,16 @@ import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.Friend
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.model.Loan
+import com.didiprogrammer.youtepresta.data.model.LoanDueDateChange
 import com.didiprogrammer.youtepresta.data.repository.InterestType
 import com.didiprogrammer.youtepresta.data.repository.LoanStatus
+import com.didiprogrammer.youtepresta.ui.common.DialogButtonRow
 import com.didiprogrammer.youtepresta.ui.payments.RegisterPaymentSheet
 import com.didiprogrammer.youtepresta.ui.sources.formatCop
 import com.didiprogrammer.youtepresta.ui.theme.Spacing
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +72,9 @@ fun LoanDetailScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     val isPaymentSheetVisible by viewModel.isPaymentSheetVisible.collectAsState()
+    val isExtendDialogVisible by viewModel.isExtendDialogVisible.collectAsState()
+    val isExtendingDueDate by viewModel.isExtendingDueDate.collectAsState()
+    val extendError by viewModel.extendError.collectAsState()
 
     Scaffold(
         modifier = modifier,
@@ -101,7 +119,9 @@ fun LoanDetailScreen(
                     source = state.source,
                     visualStatus = state.visualStatus,
                     payments = state.payments,
+                    dueDateChanges = state.dueDateChanges,
                     onRegisterPayment = { viewModel.showPaymentSheet() },
+                    onRegisterExtension = { viewModel.showExtendDialog() },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
@@ -119,6 +139,16 @@ fun LoanDetailScreen(
                         }
                     )
                 }
+
+                if (isExtendDialogVisible) {
+                    ExtendDueDateDialog(
+                        currentDueDate = state.loan.dueDate,
+                        isSaving = isExtendingDueDate,
+                        errorRes = extendError,
+                        onDismiss = { viewModel.dismissExtendDialog() },
+                        onConfirm = { newDueDate, notes -> viewModel.extendDueDate(newDueDate, notes) }
+                    )
+                }
             }
         }
     }
@@ -131,11 +161,17 @@ private fun LoanDetailContent(
     source: FundingSource?,
     visualStatus: LoanVisualStatus,
     payments: List<PaymentListItem>,
+    dueDateChanges: List<LoanDueDateChange>,
     onRegisterPayment: () -> Unit,
+    onRegisterExtension: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        Column(modifier = Modifier.padding(Spacing.lg)) {
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.lg)
+    ) {
+        Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -146,7 +182,15 @@ private fun LoanDetailContent(
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
-                StatusBadge(status = visualStatus)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (loan.hasBeenExtended) {
+                        ExtendedChip()
+                    }
+                    StatusBadge(status = visualStatus)
+                }
             }
             Spacer(modifier = Modifier.height(Spacing.md))
 
@@ -166,6 +210,10 @@ private fun LoanDetailContent(
                 Button(onClick = onRegisterPayment, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.payment_register_action))
                 }
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                OutlinedButton(onClick = onRegisterExtension, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.loan_extend_action))
+                }
             }
 
             Spacer(modifier = Modifier.height(Spacing.lg))
@@ -176,17 +224,159 @@ private fun LoanDetailContent(
         }
 
         if (payments.isEmpty()) {
-            Text(
-                text = stringResource(R.string.loan_payments_empty_state),
-                modifier = Modifier.padding(horizontal = Spacing.lg)
-            )
+            Text(text = stringResource(R.string.loan_payments_empty_state))
         } else {
-            LazyColumn(contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.xs)) {
-                items(payments, key = { it.payment.id }) { item ->
-                    PaymentRow(item = item)
+            payments.forEach { item ->
+                PaymentRow(item = item)
+                Spacer(modifier = Modifier.height(Spacing.sm))
+            }
+        }
+
+        if (dueDateChanges.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(Spacing.md))
+            Text(
+                stringResource(R.string.loan_due_date_changes_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            dueDateChanges.forEach { change ->
+                DueDateChangeRow(change = change)
+                Spacer(modifier = Modifier.height(Spacing.sm))
+            }
+        }
+    }
+}
+
+@Composable
+private fun DueDateChangeRow(change: LoanDueDateChange) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(Spacing.md)) {
+            Text(
+                text = formatLoanDate(change.createdAt.take(10)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            Text(
+                text = stringResource(
+                    R.string.loan_due_date_change_dates,
+                    formatLoanDate(change.previousDueDate),
+                    formatLoanDate(change.newDueDate)
+                ),
+                fontWeight = FontWeight.Bold
+            )
+            if (!change.notes.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                Text(text = change.notes, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ExtendDueDateDialog(
+    currentDueDate: String?,
+    isSaving: Boolean,
+    errorRes: Int?,
+    onDismiss: () -> Unit,
+    onConfirm: (newDueDate: String, notes: String?) -> Unit
+) {
+    var newDueDate by remember {
+        mutableStateOf(currentDueDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() })
+    }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var notes by remember { mutableStateOf("") }
+    var dateError by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = { if (!isSaving) onDismiss() },
+        title = { Text(stringResource(R.string.loan_extend_dialog_title)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                OutlinedTextField(
+                    value = newDueDate?.let { formatLoanDate(it) }.orEmpty(),
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = !isSaving,
+                    isError = dateError,
+                    label = { Text(stringResource(R.string.loan_extend_new_due_date_label)) },
+                    trailingIcon = {
+                        IconButton(onClick = { showDatePicker = true }) {
+                            Icon(Icons.Filled.DateRange, contentDescription = stringResource(R.string.loan_pick_date_icon))
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (dateError) {
+                    Text(
+                        text = stringResource(R.string.loan_extend_date_required_error),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Spacer(modifier = Modifier.height(Spacing.md))
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    enabled = !isSaving,
+                    label = { Text(stringResource(R.string.loan_extend_notes_label)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (errorRes != null) {
                     Spacer(modifier = Modifier.height(Spacing.sm))
+                    Text(text = stringResource(errorRes), color = MaterialTheme.colorScheme.error)
                 }
             }
+        },
+        confirmButton = {
+            DialogButtonRow(
+                onDismiss = onDismiss,
+                onConfirm = {
+                    val date = newDueDate
+                    if (date == null) {
+                        dateError = true
+                    } else {
+                        dateError = false
+                        onConfirm(date.toString(), notes)
+                    }
+                },
+                confirmText = stringResource(R.string.loan_extend_save_button),
+                enabled = !isSaving,
+                isLoading = isSaving
+            )
+        }
+    )
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = newDueDate
+                ?.atStartOfDay(ZoneOffset.UTC)
+                ?.toInstant()
+                ?.toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        newDueDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+                    }
+                    showDatePicker = false
+                }) {
+                    Text(stringResource(R.string.loan_date_picker_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }

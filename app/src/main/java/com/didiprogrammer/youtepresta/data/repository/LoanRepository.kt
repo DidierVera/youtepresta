@@ -1,6 +1,7 @@
 package com.didiprogrammer.youtepresta.data.repository
 
 import com.didiprogrammer.youtepresta.data.model.Loan
+import com.didiprogrammer.youtepresta.data.model.LoanDueDateChange
 import com.didiprogrammer.youtepresta.data.remote.SupabaseClientProvider
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
@@ -36,6 +37,7 @@ class LoanSourceMovementException(val loanId: String, cause: Throwable) : Except
 object LoanRepository {
 
     private const val TABLE_LOANS = "loans"
+    private const val TABLE_DUE_DATE_CHANGES = "loan_due_date_changes"
 
     private val postgrest = SupabaseClientProvider.client.postgrest
     private val lenientJson = Json { ignoreUnknownKeys = true }
@@ -157,6 +159,43 @@ object LoanRepository {
 
         return getLoan(loanId)
     }
+
+    /**
+     * Registers a due-date extension: keeps the loan's payment status untouched (per CLAUDE.md,
+     * status only ever reflects principal paid down) but pushes due_date forward and leaves a
+     * traceable row in loan_due_date_changes with the previous/new date and the reason.
+     */
+    suspend fun extendDueDate(loanId: String, newDueDate: String, notes: String?): Loan {
+        val loan = getLoan(loanId)
+        val previousDueDate = loan.dueDate ?: newDueDate
+
+        postgrest.from(TABLE_DUE_DATE_CHANGES)
+            .insert(
+                NewLoanDueDateChange(
+                    loanId = loanId,
+                    previousDueDate = previousDueDate,
+                    newDueDate = newDueDate,
+                    notes = notes
+                )
+            )
+
+        postgrest.from(TABLE_LOANS).update({
+            Loan::dueDate setTo newDueDate
+            Loan::hasBeenExtended setTo true
+        }) {
+            filter { Loan::id eq loanId }
+        }
+
+        return getLoan(loanId)
+    }
+
+    suspend fun getDueDateChanges(loanId: String): List<LoanDueDateChange> =
+        postgrest.from(TABLE_DUE_DATE_CHANGES)
+            .select {
+                filter { LoanDueDateChange::loanId eq loanId }
+                order("created_at", Order.DESCENDING)
+            }
+            .decodeList()
 }
 
 @Serializable
@@ -169,4 +208,12 @@ private data class NewLoan(
     @SerialName("due_date") val dueDate: String,
     @SerialName("outstanding_principal") val outstandingPrincipal: Double,
     val status: String
+)
+
+@Serializable
+private data class NewLoanDueDateChange(
+    @SerialName("loan_id") val loanId: String,
+    @SerialName("previous_due_date") val previousDueDate: String,
+    @SerialName("new_due_date") val newDueDate: String,
+    val notes: String?
 )

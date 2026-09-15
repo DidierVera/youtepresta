@@ -6,6 +6,7 @@ import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.repository.FundingSourceRepository
 import com.didiprogrammer.youtepresta.data.repository.PaymentRepository
+import com.didiprogrammer.youtepresta.ui.common.SnackbarController
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,8 +52,10 @@ class RegisterPaymentViewModel : ViewModel() {
         principalDestination: FundingSource?,
         interestDestination: FundingSource?
     ) {
-        val principal = principalPaymentInput.replace(",", ".").toDoubleOrNull()
-        val interest = interestPaymentInput.replace(",", ".").toDoubleOrNull()
+        // A field left blank means "no payment on this side" (0), not "invalid" — matches the
+        // live total preview in RegisterPaymentSheet, which already treats blank as 0.
+        val principal = principalPaymentInput.replace(",", ".").let { if (it.isBlank()) 0.0 else it.toDoubleOrNull() }
+        val interest = interestPaymentInput.replace(",", ".").let { if (it.isBlank()) 0.0 else it.toDoubleOrNull() }
 
         if (principal == null || interest == null || principal < 0 || interest < 0) {
             _error.value = R.string.payment_amounts_invalid_error
@@ -80,6 +83,7 @@ class RegisterPaymentViewModel : ViewModel() {
                 )
                 _isSaving.value = false
                 _paymentRegistered.value = true
+                SnackbarController.show(R.string.snackbar_payment_registered)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

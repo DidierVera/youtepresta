@@ -196,8 +196,12 @@ private fun CreateFundingSourceSheet(viewModel: FundingSourcesViewModel) {
     var name by remember { mutableStateOf("") }
     var initialBalance by remember { mutableStateOf("") }
 
+    val parsedBalance = if (initialBalance.isBlank()) 0.0 else initialBalance.replace(",", ".").toDoubleOrNull()
+    val isBalanceValid = parsedBalance != null && parsedBalance >= 0
+    val isFormValid = name.isNotBlank() && isBalanceValid
+
     ModalBottomSheet(
-        onDismissRequest = { viewModel.dismissCreateSheet() },
+        onDismissRequest = { if (!isCreating) viewModel.dismissCreateSheet() },
         sheetState = sheetState
     ) {
         Column(
@@ -226,6 +230,12 @@ private fun CreateFundingSourceSheet(viewModel: FundingSourcesViewModel) {
                 label = { Text(stringResource(R.string.source_initial_balance_label)) },
                 singleLine = true,
                 enabled = !isCreating,
+                isError = !isBalanceValid,
+                supportingText = {
+                    if (!isBalanceValid) {
+                        Text(stringResource(R.string.source_initial_balance_invalid_error))
+                    }
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -233,7 +243,7 @@ private fun CreateFundingSourceSheet(viewModel: FundingSourcesViewModel) {
 
             Button(
                 onClick = { viewModel.createFundingSource(name, initialBalance) },
-                enabled = !isCreating,
+                enabled = !isCreating && isFormValid,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (isCreating) {

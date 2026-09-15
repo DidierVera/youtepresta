@@ -179,7 +179,7 @@ private fun FriendDialog(viewModel: FriendsViewModel) {
     var notes by remember(editingFriend) { mutableStateOf(editingFriend?.notes.orEmpty()) }
 
     AlertDialog(
-        onDismissRequest = { viewModel.dismissDialog() },
+        onDismissRequest = { if (!isSaving) viewModel.dismissDialog() },
         title = { Text(stringResource(if (editingFriend != null) R.string.friend_dialog_title_edit else R.string.friend_dialog_title_create)) },
         text = {
             Column {
@@ -219,7 +219,7 @@ private fun FriendDialog(viewModel: FriendsViewModel) {
                 onDismiss = { viewModel.dismissDialog() },
                 onConfirm = { viewModel.saveFriend(name, phone, notes) },
                 confirmText = stringResource(if (editingFriend != null) R.string.common_save else R.string.common_create),
-                enabled = !isSaving,
+                enabled = !isSaving && name.isNotBlank(),
                 isLoading = isSaving
             )
         }
@@ -232,7 +232,7 @@ private fun DeleteFriendDialog(viewModel: FriendsViewModel, friend: Friend) {
     val deleteError by viewModel.deleteError.collectAsState()
 
     AlertDialog(
-        onDismissRequest = { viewModel.dismissDeleteConfirmation() },
+        onDismissRequest = { if (!isDeleting) viewModel.dismissDeleteConfirmation() },
         title = { Text(stringResource(R.string.friend_delete_title)) },
         text = {
             Column {

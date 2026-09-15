@@ -7,6 +7,7 @@ import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.Friend
 import com.didiprogrammer.youtepresta.data.repository.FriendHasLoansException
 import com.didiprogrammer.youtepresta.data.repository.FriendRepository
+import com.didiprogrammer.youtepresta.ui.common.SnackbarController
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -109,6 +110,9 @@ class FriendsViewModel : ViewModel() {
                 _isSaving.value = false
                 _isDialogVisible.value = false
                 _editingFriend.value = null
+                if (editing != null) {
+                    SnackbarController.show(R.string.snackbar_friend_updated)
+                }
                 loadFriends()
             } catch (e: CancellationException) {
                 throw e

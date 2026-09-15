@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">YouTePresta</string>
+    <string name="app_name">You te presta</string>
 
     <!-- Common / shared across features -->
     <string name="common_back">Volver</string>
@@ -18,6 +18,15 @@
     <string name="common_empty_value">—</string>
     <string name="common_plus_symbol">+</string>
     <string name="common_source_with_balance">%1$s (%2$s)</string>
+
+    <!-- Snackbar confirmations -->
+    <string name="snackbar_loan_created">Préstamo creado</string>
+    <string name="snackbar_payment_registered">Pago registrado</string>
+    <string name="snackbar_source_archived">Bolsillo archivado</string>
+    <string name="snackbar_source_unarchived">Bolsillo reactivado</string>
+    <string name="snackbar_friend_updated">Amigo actualizado</string>
+    <string name="snackbar_movement_updated">Movimiento actualizado</string>
+    <string name="snackbar_due_date_extended">Prórroga registrada</string>
 
     <!-- Auth / Login -->
     <string name="login_title">Iniciar sesión</string>
@@ -47,6 +56,15 @@
     <string name="home_due_loans_banner">Tienes %1$d cobros pendientes hoy</string>
     <string name="home_due_loans_banner_dismiss">Descartar</string>
 
+    <!-- App lock -->
+    <string name="lock_title">Aplicación bloqueada</string>
+    <string name="lock_message">Desbloquea con tu huella, rostro o PIN del dispositivo para continuar</string>
+    <string name="lock_unlock_button">Desbloquear</string>
+    <string name="lock_prompt_title">Desbloquear You te presta</string>
+    <string name="lock_prompt_subtitle">Usa tu huella, rostro o PIN del dispositivo</string>
+    <string name="lock_error_generic">No se pudo verificar tu identidad. Intenta de nuevo.</string>
+    <string name="lock_error_lockout">Demasiados intentos. Espera un momento e intenta de nuevo.</string>
+
     <!-- Notifications -->
     <string name="notification_channel_name">Recordatorios de préstamos</string>
     <string name="notification_channel_description">Avisa cuando un préstamo vence hoy o sigue atrasado</string>
@@ -68,7 +86,7 @@
     <string name="friend_update_error">No se pudo actualizar el amigo.</string>
     <string name="friend_create_error">No se pudo crear el amigo.</string>
     <string name="friend_delete_title">Eliminar amigo</string>
-    <string name="friend_delete_confirm_message">¿Seguro que quieres eliminar a %1$s? Esta acción no se puede deshacer.</string>
+    <string name="friend_delete_confirm_message">¿Seguro que quieres eliminar a \"%1$s\"? Esta acción no se puede deshacer.</string>
     <string name="friend_has_loans_error">No puedes eliminar un amigo con préstamos registrados.</string>
     <string name="friend_delete_generic_error">No se pudo eliminar el amigo.</string>
     <string name="friend_picker_default_label">Buscar o crear amigo</string>

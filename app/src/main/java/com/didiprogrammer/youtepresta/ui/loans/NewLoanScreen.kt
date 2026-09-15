@@ -1,5 +1,6 @@
 package com.didiprogrammer.youtepresta.ui.loans
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -86,13 +87,32 @@ fun NewLoanScreen(
     var interestValue by remember { mutableStateOf("") }
     var sourceDropdownExpanded by remember { mutableStateOf(false) }
 
+    val amountValue = amount.replace(",", ".").toDoubleOrNull()
+    val isAmountValid = amountValue != null && amountValue > 0
+    val isAmountError = amount.isNotBlank() && !isAmountValid
+
+    val interestValueParsed = interestValue.replace(",", ".").toDoubleOrNull()
+    val isInterestValid = interestType != InterestType.FIXED || (interestValueParsed != null && interestValueParsed > 0)
+    val isInterestError = interestType == InterestType.FIXED && interestValue.isNotBlank() && !isInterestValid
+
+    val isFormValid = selectedFriend != null &&
+        selectedSource != null &&
+        isAmountValid &&
+        dueDate != null &&
+        isInterestValid
+
+    // Absorb the system back gesture while a save is in flight so leaving the screen can't
+    // cancel the network call partway through (see LoanSourceMovementException for what a
+    // half-finished loan+movement write looks like).
+    BackHandler(enabled = isSaving) {}
+
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.loan_new_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { if (!isSaving) onBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
@@ -115,6 +135,12 @@ fun NewLoanScreen(
                 label = { Text(stringResource(R.string.common_amount_label)) },
                 singleLine = true,
                 enabled = !isSaving,
+                isError = isAmountError,
+                supportingText = {
+                    if (isAmountError) {
+                        Text(stringResource(R.string.common_amount_invalid_error))
+                    }
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -159,7 +185,6 @@ fun NewLoanScreen(
                         }
                     }
 
-                    val amountValue = amount.replace(",", ".").toDoubleOrNull()
                     val source = selectedSource
                     if (source != null && amountValue != null && amountValue > source.currentBalance) {
                         Spacer(modifier = Modifier.height(Spacing.sm))
@@ -233,6 +258,12 @@ fun NewLoanScreen(
                         label = { Text(stringResource(R.string.loan_interest_value_label)) },
                         singleLine = true,
                         enabled = !isSaving,
+                        isError = isInterestError,
+                        supportingText = {
+                            if (isInterestError) {
+                                Text(stringResource(R.string.loan_interest_value_invalid_error))
+                            }
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -251,7 +282,7 @@ fun NewLoanScreen(
                         interestValueInput = interestValue
                     )
                 },
-                enabled = !isSaving,
+                enabled = !isSaving && isFormValid,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (isSaving) {

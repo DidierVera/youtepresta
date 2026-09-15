@@ -290,7 +290,6 @@ private fun ExtendDueDateDialog(
     }
     var showDatePicker by remember { mutableStateOf(false) }
     var notes by remember { mutableStateOf("") }
-    var dateError by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
@@ -302,7 +301,6 @@ private fun ExtendDueDateDialog(
                     onValueChange = {},
                     readOnly = true,
                     enabled = !isSaving,
-                    isError = dateError,
                     label = { Text(stringResource(R.string.loan_extend_new_due_date_label)) },
                     trailingIcon = {
                         IconButton(onClick = { showDatePicker = true }) {
@@ -311,13 +309,6 @@ private fun ExtendDueDateDialog(
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
-                if (dateError) {
-                    Text(
-                        text = stringResource(R.string.loan_extend_date_required_error),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
                 Spacer(modifier = Modifier.height(Spacing.md))
                 OutlinedTextField(
                     value = notes,
@@ -336,16 +327,11 @@ private fun ExtendDueDateDialog(
             DialogButtonRow(
                 onDismiss = onDismiss,
                 onConfirm = {
-                    val date = newDueDate
-                    if (date == null) {
-                        dateError = true
-                    } else {
-                        dateError = false
-                        onConfirm(date.toString(), notes)
-                    }
+                    val date = newDueDate ?: return@DialogButtonRow
+                    onConfirm(date.toString(), notes)
                 },
                 confirmText = stringResource(R.string.loan_extend_save_button),
-                enabled = !isSaving,
+                enabled = !isSaving && newDueDate != null,
                 isLoading = isSaving
             )
         }

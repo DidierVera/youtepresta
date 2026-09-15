@@ -281,7 +281,7 @@ private fun DeleteSourceDialog(viewModel: FundingSourceDetailViewModel, source: 
     val deleteError by viewModel.deleteSourceError.collectAsState()
 
     AlertDialog(
-        onDismissRequest = { viewModel.dismissDeleteSourceConfirmation() },
+        onDismissRequest = { if (!isDeleting) viewModel.dismissDeleteSourceConfirmation() },
         title = { Text(stringResource(R.string.source_delete_title)) },
         text = {
             Column {
@@ -383,8 +383,12 @@ private fun MovementSheet(viewModel: FundingSourceDetailViewModel) {
     }
     var notes by remember(editingMovement) { mutableStateOf(editingMovement?.notes.orEmpty()) }
 
+    val parsedAmount = amount.replace(",", ".").toDoubleOrNull()
+    val isAmountValid = parsedAmount != null && parsedAmount > 0
+    val isAmountError = amount.isNotBlank() && !isAmountValid
+
     ModalBottomSheet(
-        onDismissRequest = { viewModel.dismissMovementSheet() },
+        onDismissRequest = { if (!isSaving) viewModel.dismissMovementSheet() },
         sheetState = sheetState
     ) {
         Column(
@@ -435,6 +439,12 @@ private fun MovementSheet(viewModel: FundingSourceDetailViewModel) {
                 label = { Text(stringResource(R.string.common_amount_label)) },
                 singleLine = true,
                 enabled = !isSaving,
+                isError = isAmountError,
+                supportingText = {
+                    if (isAmountError) {
+                        Text(stringResource(R.string.common_amount_invalid_error))
+                    }
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -452,7 +462,7 @@ private fun MovementSheet(viewModel: FundingSourceDetailViewModel) {
 
             Button(
                 onClick = { viewModel.saveMovement(selectedType, amount, notes) },
-                enabled = !isSaving,
+                enabled = !isSaving && isAmountValid,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (isSaving) {
@@ -476,7 +486,7 @@ private fun DeleteMovementDialog(viewModel: FundingSourceDetailViewModel, moveme
     val deleteError by viewModel.deleteMovementError.collectAsState()
 
     AlertDialog(
-        onDismissRequest = { viewModel.dismissDeleteMovementConfirmation() },
+        onDismissRequest = { if (!isDeleting) viewModel.dismissDeleteMovementConfirmation() },
         title = { Text(stringResource(R.string.movement_delete_title)) },
         text = {
             Column {

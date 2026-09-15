@@ -11,6 +11,7 @@ import com.didiprogrammer.youtepresta.data.repository.MovementType
 import com.didiprogrammer.youtepresta.data.repository.NonManualSourceMovementException
 import com.didiprogrammer.youtepresta.data.repository.SourceHasActiveLoansException
 import com.didiprogrammer.youtepresta.data.repository.SourceInUseException
+import com.didiprogrammer.youtepresta.ui.common.SnackbarController
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -135,6 +136,9 @@ class FundingSourceDetailViewModel : ViewModel() {
                 _isSavingMovement.value = false
                 _isMovementSheetVisible.value = false
                 _editingMovement.value = null
+                if (editing != null) {
+                    SnackbarController.show(R.string.snackbar_movement_updated)
+                }
                 refresh()
             } catch (e: CancellationException) {
                 throw e
@@ -196,6 +200,7 @@ class FundingSourceDetailViewModel : ViewModel() {
             try {
                 FundingSourceRepository.archiveSource(id)
                 _isProcessingArchiveAction.value = false
+                SnackbarController.show(R.string.snackbar_source_archived)
                 refresh()
             } catch (e: CancellationException) {
                 throw e
@@ -217,6 +222,7 @@ class FundingSourceDetailViewModel : ViewModel() {
             try {
                 FundingSourceRepository.unarchiveSource(id)
                 _isProcessingArchiveAction.value = false
+                SnackbarController.show(R.string.snackbar_source_unarchived)
                 refresh()
             } catch (e: CancellationException) {
                 throw e

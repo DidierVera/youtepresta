@@ -72,6 +72,13 @@ fun RegisterPaymentSheet(
     var interestDropdownExpanded by remember { mutableStateOf(false) }
     var showMore by remember { mutableStateOf(false) }
 
+    val principalValue = principalPayment.replace(",", ".").let { if (it.isBlank()) 0.0 else it.toDoubleOrNull() }
+    val interestValue = interestPayment.replace(",", ".").let { if (it.isBlank()) 0.0 else it.toDoubleOrNull() }
+    val isPrincipalFieldError = principalPayment.isNotBlank() && (principalValue == null || principalValue < 0)
+    val isInterestFieldError = interestPayment.isNotBlank() && (interestValue == null || interestValue < 0)
+    val hasPositiveAmount = (principalValue ?: 0.0) > 0 || (interestValue ?: 0.0) > 0
+    val isFormValid = !isPrincipalFieldError && !isInterestFieldError && hasPositiveAmount && principalDestination != null
+
     LaunchedEffect(fundingSources) {
         if (principalDestination == null && fundingSources.isNotEmpty()) {
             principalDestination = fundingSources.find { it.id == defaultSourceId } ?: fundingSources.first()
@@ -81,7 +88,7 @@ fun RegisterPaymentSheet(
     val sheetState = rememberModalBottomSheetState()
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!isSaving) onDismiss() },
         sheetState = sheetState,
         modifier = modifier
     ) {
@@ -107,6 +114,12 @@ fun RegisterPaymentSheet(
                 label = { Text(stringResource(R.string.payment_principal_label)) },
                 singleLine = true,
                 enabled = !isSaving,
+                isError = isPrincipalFieldError,
+                supportingText = {
+                    if (isPrincipalFieldError) {
+                        Text(stringResource(R.string.payment_amounts_invalid_error))
+                    }
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -118,6 +131,12 @@ fun RegisterPaymentSheet(
                 label = { Text(stringResource(R.string.payment_interest_label)) },
                 singleLine = true,
                 enabled = !isSaving,
+                isError = isInterestFieldError,
+                supportingText = {
+                    if (isInterestFieldError) {
+                        Text(stringResource(R.string.payment_amounts_invalid_error))
+                    }
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -218,7 +237,7 @@ fun RegisterPaymentSheet(
                         interestDestination = interestDestination
                     )
                 },
-                enabled = !isSaving,
+                enabled = !isSaving && isFormValid,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (isSaving) {

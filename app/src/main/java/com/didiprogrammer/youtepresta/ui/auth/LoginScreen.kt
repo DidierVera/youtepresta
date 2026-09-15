@@ -44,6 +44,7 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
 
     val isLoading = uiState is LoginUiState.Loading
+    val isFormValid = email.isNotBlank() && password.isNotBlank()
 
     LaunchedEffect(uiState) {
         if (uiState is LoginUiState.Success) {
@@ -91,7 +92,7 @@ fun LoginScreen(
 
         Button(
             onClick = viewModel::login,
-            enabled = !isLoading,
+            enabled = !isLoading && isFormValid,
             modifier = Modifier.fillMaxWidth()
         ) {
             if (isLoading) {

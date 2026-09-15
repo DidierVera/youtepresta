@@ -10,6 +10,7 @@ import com.didiprogrammer.youtepresta.data.repository.FundingSourceRepository
 import com.didiprogrammer.youtepresta.data.repository.InterestType
 import com.didiprogrammer.youtepresta.data.repository.LoanRepository
 import com.didiprogrammer.youtepresta.data.repository.LoanSourceMovementException
+import com.didiprogrammer.youtepresta.ui.common.SnackbarController
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -102,6 +103,7 @@ class NewLoanViewModel : ViewModel() {
                 )
                 _isSaving.value = false
                 _loanCreated.value = true
+                SnackbarController.show(R.string.snackbar_loan_created)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: LoanSourceMovementException) {

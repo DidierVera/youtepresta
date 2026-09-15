@@ -13,6 +13,7 @@ import com.didiprogrammer.youtepresta.data.repository.FriendRepository
 import com.didiprogrammer.youtepresta.data.repository.FundingSourceRepository
 import com.didiprogrammer.youtepresta.data.repository.LoanRepository
 import com.didiprogrammer.youtepresta.data.repository.PaymentRepository
+import com.didiprogrammer.youtepresta.ui.common.SnackbarController
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -125,6 +126,7 @@ class LoanDetailViewModel : ViewModel() {
             try {
                 LoanRepository.extendDueDate(id, newDueDate, notes?.takeIf { it.isNotBlank() })
                 _isExtendDialogVisible.value = false
+                SnackbarController.show(R.string.snackbar_due_date_extended)
                 refresh()
             } catch (e: CancellationException) {
                 throw e

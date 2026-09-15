@@ -1,6 +1,7 @@
 package com.didiprogrammer.youtepresta
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -146,8 +147,11 @@ private fun AppRoot(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             // Re-lock every time the app leaves the foreground, same as most apps that gate
-            // themselves behind biometrics — a fresh login explicitly unlocks it again.
-            if (event == Lifecycle.Event.ON_STOP) {
+            // themselves behind biometrics — a fresh login explicitly unlocks it again. An
+            // ON_STOP caused by a configuration change (e.g. rotation) is not really leaving the
+            // app, even though the screen is locked to portrait as a second line of defense —
+            // ignore it so it doesn't force a spurious re-lock.
+            if (event == Lifecycle.Event.ON_STOP && (context as? Activity)?.isChangingConfigurations != true) {
                 AppLockState.markLocked()
             }
         }

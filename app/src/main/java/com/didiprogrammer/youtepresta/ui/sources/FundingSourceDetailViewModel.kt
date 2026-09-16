@@ -6,9 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.model.SourceMovement
+import com.didiprogrammer.youtepresta.data.repository.FriendRepository
 import com.didiprogrammer.youtepresta.data.repository.FundingSourceRepository
+import com.didiprogrammer.youtepresta.data.repository.LoanRepository
 import com.didiprogrammer.youtepresta.data.repository.MovementType
 import com.didiprogrammer.youtepresta.data.repository.NonManualSourceMovementException
+import com.didiprogrammer.youtepresta.data.repository.PaymentRepository
 import com.didiprogrammer.youtepresta.data.repository.SourceHasActiveLoansException
 import com.didiprogrammer.youtepresta.data.repository.SourceInUseException
 import com.didiprogrammer.youtepresta.ui.common.SnackbarController
@@ -18,12 +21,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+data class MovementListItem(val movement: SourceMovement, val friendName: String?)
+
 sealed interface FundingSourceDetailUiState {
     data object Loading : FundingSourceDetailUiState
     data class Error(@StringRes val messageRes: Int) : FundingSourceDetailUiState
     data class Content(
         val source: FundingSource,
-        val movements: List<SourceMovement>,
+        val movements: List<MovementListItem>,
         val hasAnyLoan: Boolean,
         val canArchive: Boolean
     ) : FundingSourceDetailUiState
@@ -73,7 +78,7 @@ class FundingSourceDetailViewModel : ViewModel() {
                 val archiveStatus = FundingSourceRepository.getArchiveStatus(id)
                 _uiState.value = FundingSourceDetailUiState.Content(
                     source = source,
-                    movements = movements,
+                    movements = withFriendNames(movements),
                     hasAnyLoan = archiveStatus.hasAnyLoan,
                     canArchive = archiveStatus.canArchive
                 )
@@ -82,6 +87,48 @@ class FundingSourceDetailViewModel : ViewModel() {
             } catch (e: Exception) {
                 _uiState.value = FundingSourceDetailUiState.Error(R.string.source_detail_load_error)
             }
+        }
+    }
+
+    /**
+     * Resolves which friend a movement belongs to: a loan movement points at the friend it was
+     * lent to directly (`reference_loan_id`), a payment movement first has to look up which loan
+     * that payment was for (`reference_payment_id` -> payment -> loan -> friend). Fetches every
+     * loan/payment/friend once instead of a query per movement — cheap at this app's data volume
+     * (see CLAUDE.md) and the same "fetch broad, join in memory" pattern used elsewhere
+     * (e.g. [com.didiprogrammer.youtepresta.data.repository.FriendSummaryRepository]).
+     */
+    private suspend fun withFriendNames(movements: List<SourceMovement>): List<MovementListItem> {
+        if (movements.none { it.referenceLoanId != null || it.referencePaymentId != null }) {
+            return movements.map { MovementListItem(it, friendName = null) }
+        }
+
+        val friendNamesById = try {
+            FriendRepository.getFriends().associate { it.id to it.name }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emptyMap()
+        }
+        val loanFriendIdsById = try {
+            LoanRepository.getLoans().associate { it.id to it.friendId }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emptyMap()
+        }
+        val loanIdsByPaymentId = try {
+            PaymentRepository.getAllPayments().associate { it.id to it.loanId }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emptyMap()
+        }
+
+        return movements.map { movement ->
+            val loanId = movement.referenceLoanId ?: loanIdsByPaymentId[movement.referencePaymentId]
+            val friendId = loanId?.let { loanFriendIdsById[it] }
+            MovementListItem(movement, friendName = friendId?.let { friendNamesById[it] })
         }
     }
 

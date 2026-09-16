@@ -129,6 +129,8 @@
     <string name="source_detail_empty_state">Este bolsillo todavía no tiene movimientos.</string>
     <string name="source_movement_reference_loan">Préstamo</string>
     <string name="source_movement_reference_payment">Pago</string>
+    <string name="source_movement_reference_loan_with_friend">Préstamo a %1$s</string>
+    <string name="source_movement_reference_payment_with_friend">Pago de %1$s</string>
     <string name="source_archived_badge">Archivado</string>
     <string name="source_archive_button">Archivar</string>
     <string name="source_unarchive_button">Reactivar</string>

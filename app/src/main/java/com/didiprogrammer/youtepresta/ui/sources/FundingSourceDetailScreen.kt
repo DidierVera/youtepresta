@@ -201,11 +201,11 @@ private fun FundingSourceDetailContent(
             }
         } else {
             LazyColumn(contentPadding = PaddingValues(Spacing.md)) {
-                items(movements, key = { it.id }) { movement ->
+                items(movements, key = { it.movement.id }) { item ->
                     MovementRow(
-                        movement = movement,
-                        onEdit = { onEditMovement(movement) },
-                        onDelete = { onDeleteMovement(movement) }
+                        item = item,
+                        onEdit = { onEditMovement(item.movement) },
+                        onDelete = { onDeleteMovement(item.movement) }
                     )
                     Spacer(modifier = Modifier.height(Spacing.sm))
                 }
@@ -306,13 +306,23 @@ private fun DeleteSourceDialog(viewModel: FundingSourceDetailViewModel, source: 
 }
 
 @Composable
-private fun MovementRow(movement: SourceMovement, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun MovementRow(item: MovementListItem, onEdit: () -> Unit, onDelete: () -> Unit) {
+    val movement = item.movement
     val isIncome = movement.movementType == MovementType.INCOME.dbValue
     val amountColor = if (isIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
     val isManual = movement.referenceLoanId == null && movement.referencePaymentId == null
-    val sourceLabelRes = when {
-        movement.referenceLoanId != null -> R.string.source_movement_reference_loan
-        movement.referencePaymentId != null -> R.string.source_movement_reference_payment
+    val friendName = item.friendName
+    val sourceLabel = when {
+        movement.referenceLoanId != null -> if (friendName != null) {
+            stringResource(R.string.source_movement_reference_loan_with_friend, friendName)
+        } else {
+            stringResource(R.string.source_movement_reference_loan)
+        }
+        movement.referencePaymentId != null -> if (friendName != null) {
+            stringResource(R.string.source_movement_reference_payment_with_friend, friendName)
+        } else {
+            stringResource(R.string.source_movement_reference_payment)
+        }
         else -> null
     }
 
@@ -330,10 +340,10 @@ private fun MovementRow(movement: SourceMovement, onEdit: () -> Unit, onDelete: 
                     Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(text = movement.notes, style = MaterialTheme.typography.bodyMedium)
                 }
-                if (sourceLabelRes != null) {
+                if (sourceLabel != null) {
                     Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(
-                        text = stringResource(sourceLabelRes),
+                        text = sourceLabel,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier

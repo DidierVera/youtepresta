@@ -7,6 +7,7 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.time.LocalDate
 
 object PaymentRepository {
 
@@ -36,10 +37,16 @@ object PaymentRepository {
         principalDestinationSourceId: String,
         interestDestinationSourceId: String?
     ): Loan {
+        // due_date_at_payment records the loan's recurring due date as it stood right before this
+        // payment (before LoanRepository.registerPrincipalPayment below may advance it) — an
+        // audit trail of what was actually due when the payment was made.
+        val dueDateAtPayment = LoanRepository.getLoan(loanId).dueDate ?: LocalDate.now().toString()
+
         val created = postgrest.from(TABLE_PAYMENTS)
             .insert(
                 NewPayment(
                     loanId = loanId,
+                    dueDateAtPayment = dueDateAtPayment,
                     principalPayment = principalPayment,
                     interestPayment = interestPayment,
                     principalDestinationSourceId = principalDestinationSourceId,
@@ -75,6 +82,7 @@ object PaymentRepository {
 @Serializable
 private data class NewPayment(
     @SerialName("loan_id") val loanId: String,
+    @SerialName("due_date_at_payment") val dueDateAtPayment: String,
     @SerialName("principal_payment") val principalPayment: Double,
     @SerialName("interest_payment") val interestPayment: Double,
     @SerialName("principal_destination_source_id") val principalDestinationSourceId: String,

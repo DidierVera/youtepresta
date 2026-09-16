@@ -45,24 +45,21 @@ class RegisterPaymentViewModel : ViewModel() {
         }
     }
 
+    /**
+     * [interestPayment] arrives already computed by the caller (monthly rate × outstanding
+     * principal, per CLAUDE.md — never user-entered), so only [principalPaymentInput] needs
+     * parsing/validation here.
+     */
     fun registerPayment(
         loanId: String,
         principalPaymentInput: String,
-        interestPaymentInput: String,
+        interestPayment: Double,
         principalDestination: FundingSource?,
         interestDestination: FundingSource?
     ) {
-        // A field left blank means "no payment on this side" (0), not "invalid" — matches the
-        // live total preview in RegisterPaymentSheet, which already treats blank as 0.
-        val principal = principalPaymentInput.replace(",", ".").let { if (it.isBlank()) 0.0 else it.toDoubleOrNull() }
-        val interest = interestPaymentInput.replace(",", ".").let { if (it.isBlank()) 0.0 else it.toDoubleOrNull() }
-
-        if (principal == null || interest == null || principal < 0 || interest < 0) {
-            _error.value = R.string.payment_amounts_invalid_error
-            return
-        }
-        if (principal == 0.0 && interest == 0.0) {
-            _error.value = R.string.payment_amount_zero_error
+        val principal = principalPaymentInput.replace(",", ".").toDoubleOrNull()
+        if (principal == null || principal <= 0) {
+            _error.value = R.string.common_amount_invalid_error
             return
         }
         if (principalDestination == null) {
@@ -77,7 +74,7 @@ class RegisterPaymentViewModel : ViewModel() {
                 PaymentRepository.createPayment(
                     loanId = loanId,
                     principalPayment = principal,
-                    interestPayment = interest,
+                    interestPayment = interestPayment,
                     principalDestinationSourceId = principalDestination.id,
                     interestDestinationSourceId = interestDestination?.id
                 )

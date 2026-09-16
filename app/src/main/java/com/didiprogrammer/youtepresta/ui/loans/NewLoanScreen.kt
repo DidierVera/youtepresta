@@ -15,12 +15,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -32,9 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -50,13 +45,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.Friend
 import com.didiprogrammer.youtepresta.data.model.FundingSource
-import com.didiprogrammer.youtepresta.data.repository.InterestType
 import com.didiprogrammer.youtepresta.ui.friends.FriendPicker
 import com.didiprogrammer.youtepresta.ui.sources.formatCop
 import com.didiprogrammer.youtepresta.ui.theme.Spacing
-import java.time.Instant
+import com.didiprogrammer.youtepresta.util.DueDateCalculator
+import com.didiprogrammer.youtepresta.util.DueDayRule
 import java.time.LocalDate
-import java.time.ZoneOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,26 +74,24 @@ fun NewLoanScreen(
     var selectedFriend by remember { mutableStateOf<Friend?>(null) }
     var selectedSource by remember { mutableStateOf<FundingSource?>(null) }
     var amount by remember { mutableStateOf("") }
-    var dueDate by remember { mutableStateOf<LocalDate?>(null) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showMore by remember { mutableStateOf(false) }
-    var interestType by remember { mutableStateOf(InterestType.NONE) }
-    var interestValue by remember { mutableStateOf("") }
+    var dueDayRule by remember { mutableStateOf(DueDayRule.DAY_15) }
+    var monthlyInterestRatePercent by remember { mutableStateOf("") }
     var sourceDropdownExpanded by remember { mutableStateOf(false) }
 
     val amountValue = amount.replace(",", ".").toDoubleOrNull()
     val isAmountValid = amountValue != null && amountValue > 0
     val isAmountError = amount.isNotBlank() && !isAmountValid
 
-    val interestValueParsed = interestValue.replace(",", ".").toDoubleOrNull()
-    val isInterestValid = interestType != InterestType.FIXED || (interestValueParsed != null && interestValueParsed > 0)
-    val isInterestError = interestType == InterestType.FIXED && interestValue.isNotBlank() && !isInterestValid
+    val ratePercentValue = monthlyInterestRatePercent.replace(",", ".").toDoubleOrNull()
+    val isRateValid = ratePercentValue != null && ratePercentValue >= 0
+    val isRateError = monthlyInterestRatePercent.isNotBlank() && !isRateValid
+
+    val firstDueDate = remember(dueDayRule) { DueDateCalculator.firstDueDate(LocalDate.now(), dueDayRule) }
 
     val isFormValid = selectedFriend != null &&
         selectedSource != null &&
         isAmountValid &&
-        dueDate != null &&
-        isInterestValid
+        isRateValid
 
     // Absorb the system back gesture while a save is in flight so leaving the screen can't
     // cancel the network call partway through (see LoanSourceMovementException for what a
@@ -198,77 +190,59 @@ fun NewLoanScreen(
             }
             Spacer(modifier = Modifier.height(Spacing.md))
 
+            Text(stringResource(R.string.loan_due_day_rule_label), style = MaterialTheme.typography.bodySmall)
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = { dueDayRule = DueDayRule.DAY_15 },
+                    enabled = !isSaving,
+                    colors = if (dueDayRule == DueDayRule.DAY_15) {
+                        ButtonDefaults.buttonColors()
+                    } else {
+                        ButtonDefaults.outlinedButtonColors()
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(DueDayRule.DAY_15.labelRes))
+                }
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Button(
+                    onClick = { dueDayRule = DueDayRule.LAST_BUSINESS_DAY },
+                    enabled = !isSaving,
+                    colors = if (dueDayRule == DueDayRule.LAST_BUSINESS_DAY) {
+                        ButtonDefaults.buttonColors()
+                    } else {
+                        ButtonDefaults.outlinedButtonColors()
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(DueDayRule.LAST_BUSINESS_DAY.labelRes))
+                }
+            }
+            Spacer(modifier = Modifier.height(Spacing.md))
+
             OutlinedTextField(
-                value = dueDate?.let { formatLoanDate(it) }.orEmpty(),
-                onValueChange = {},
-                readOnly = true,
+                value = monthlyInterestRatePercent,
+                onValueChange = { monthlyInterestRatePercent = it },
+                label = { Text(stringResource(R.string.loan_monthly_interest_rate_label)) },
+                singleLine = true,
                 enabled = !isSaving,
-                label = { Text(stringResource(R.string.loan_due_date_field_label)) },
-                trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }) {
-                        Icon(Icons.Filled.DateRange, contentDescription = stringResource(R.string.loan_pick_date_icon))
+                isError = isRateError,
+                supportingText = {
+                    if (isRateError) {
+                        Text(stringResource(R.string.loan_monthly_interest_rate_invalid_error))
                     }
                 },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            TextButton(onClick = { showMore = !showMore }) {
-                Text(stringResource(if (showMore) R.string.common_show_less else R.string.common_show_more))
-            }
-
-            if (showMore) {
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                Text(stringResource(R.string.loan_interest_section_label), style = MaterialTheme.typography.bodySmall)
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Button(
-                        onClick = { interestType = InterestType.NONE },
-                        enabled = !isSaving,
-                        colors = if (interestType == InterestType.NONE) {
-                            ButtonDefaults.buttonColors()
-                        } else {
-                            ButtonDefaults.outlinedButtonColors()
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.loan_interest_type_none))
-                    }
-                    Spacer(modifier = Modifier.width(Spacing.sm))
-                    Button(
-                        onClick = { interestType = InterestType.FIXED },
-                        enabled = !isSaving,
-                        colors = if (interestType == InterestType.FIXED) {
-                            ButtonDefaults.buttonColors()
-                        } else {
-                            ButtonDefaults.outlinedButtonColors()
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.loan_interest_type_fixed))
-                    }
-                }
-
-                if (interestType == InterestType.FIXED) {
-                    Spacer(modifier = Modifier.height(Spacing.sm))
-                    OutlinedTextField(
-                        value = interestValue,
-                        onValueChange = { interestValue = it },
-                        label = { Text(stringResource(R.string.loan_interest_value_label)) },
-                        singleLine = true,
-                        enabled = !isSaving,
-                        isError = isInterestError,
-                        supportingText = {
-                            if (isInterestError) {
-                                Text(stringResource(R.string.loan_interest_value_invalid_error))
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
+            Text(
+                text = stringResource(R.string.loan_first_due_date_preview, formatLoanDate(firstDueDate)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(modifier = Modifier.height(Spacing.lg))
 
             Button(
@@ -277,9 +251,8 @@ fun NewLoanScreen(
                         friend = selectedFriend,
                         source = selectedSource,
                         amountInput = amount,
-                        dueDate = dueDate,
-                        interestType = interestType,
-                        interestValueInput = interestValue
+                        dueDayRule = dueDayRule,
+                        monthlyInterestRatePercentInput = monthlyInterestRatePercent
                     )
                 },
                 enabled = !isSaving && isFormValid,
@@ -296,35 +269,6 @@ fun NewLoanScreen(
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(text = stringResource(error!!), color = MaterialTheme.colorScheme.error)
             }
-        }
-    }
-
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = dueDate
-                ?.atStartOfDay(ZoneOffset.UTC)
-                ?.toInstant()
-                ?.toEpochMilli()
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        dueDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-                    }
-                    showDatePicker = false
-                }) {
-                    Text(stringResource(R.string.loan_date_picker_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
         }
     }
 }

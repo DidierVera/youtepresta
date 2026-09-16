@@ -13,14 +13,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,9 +30,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -50,15 +49,18 @@ import com.didiprogrammer.youtepresta.data.model.Friend
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.model.Loan
 import com.didiprogrammer.youtepresta.data.model.LoanDueDateChange
-import com.didiprogrammer.youtepresta.data.repository.InterestType
 import com.didiprogrammer.youtepresta.data.repository.LoanStatus
 import com.didiprogrammer.youtepresta.ui.common.DialogButtonRow
 import com.didiprogrammer.youtepresta.ui.payments.RegisterPaymentSheet
 import com.didiprogrammer.youtepresta.ui.sources.formatCop
+import com.didiprogrammer.youtepresta.ui.sources.formatPercent
 import com.didiprogrammer.youtepresta.ui.theme.Spacing
-import java.time.Instant
+import com.didiprogrammer.youtepresta.util.DueDateCalculator
+import com.didiprogrammer.youtepresta.util.DueDayRule
+import com.didiprogrammer.youtepresta.util.dueDayRuleEnum
 import java.time.LocalDate
-import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,6 +133,7 @@ fun LoanDetailScreen(
                     RegisterPaymentSheet(
                         loanId = state.loan.id,
                         outstandingPrincipal = state.loan.outstandingPrincipal,
+                        monthlyInterestRate = state.loan.monthlyInterestRate,
                         defaultSourceId = state.loan.sourceId,
                         onDismiss = { viewModel.dismissPaymentSheet() },
                         onPaymentRegistered = {
@@ -143,6 +146,7 @@ fun LoanDetailScreen(
                 if (isExtendDialogVisible) {
                     ExtendDueDateDialog(
                         currentDueDate = state.loan.dueDate,
+                        dueDayRule = state.loan.dueDayRuleEnum,
                         isSaving = isExtendingDueDate,
                         errorRes = extendError,
                         onDismiss = { viewModel.dismissExtendDialog() },
@@ -200,10 +204,8 @@ private fun LoanDetailContent(
             DetailRow(label = stringResource(R.string.loan_source_label), value = source?.name ?: emptyValue)
             DetailRow(label = stringResource(R.string.loan_date_label), value = formatLoanDate(loan.loanDate))
             DetailRow(label = stringResource(R.string.loan_due_date_field_label), value = loan.dueDate?.let { formatLoanDate(it) } ?: emptyValue)
-
-            if (loan.interestType == InterestType.FIXED.dbValue && loan.interestValue != null) {
-                DetailRow(label = stringResource(R.string.loan_interest_agreed_label), value = "${loan.interestValue}")
-            }
+            DetailRow(label = stringResource(R.string.loan_due_day_rule_label), value = stringResource(loan.dueDayRuleEnum.labelRes))
+            DetailRow(label = stringResource(R.string.loan_monthly_interest_rate_label), value = formatPercent(loan.monthlyInterestRate))
 
             if (loan.status != LoanStatus.PAID) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
@@ -276,19 +278,29 @@ private fun DueDateChangeRow(change: LoanDueDateChange) {
     }
 }
 
+private val monthOptionFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("MMMM yyyy", Locale.forLanguageTag("es-CO"))
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ExtendDueDateDialog(
     currentDueDate: String?,
+    dueDayRule: DueDayRule,
     isSaving: Boolean,
     errorRes: Int?,
     onDismiss: () -> Unit,
     onConfirm: (newDueDate: String, notes: String?) -> Unit
 ) {
-    var newDueDate by remember {
-        mutableStateOf(currentDueDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() })
+    val currentDue = remember(currentDueDate) {
+        currentDueDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: LocalDate.now()
     }
-    var showDatePicker by remember { mutableStateOf(false) }
+    // Only future months relative to the loan's current due date — the exact day within that
+    // month is never picked by hand, it's always DueDateCalculator's call per the loan's rule.
+    val monthOptions = remember(currentDue, dueDayRule) {
+        (1..12L).map { offset -> DueDateCalculator.dueDateForMonth(currentDue.plusMonths(offset), dueDayRule) }
+    }
+    var selectedDate by remember(monthOptions) { mutableStateOf(monthOptions.firstOrNull()) }
+    var expanded by remember { mutableStateOf(false) }
     var notes by remember { mutableStateOf("") }
 
     AlertDialog(
@@ -296,19 +308,36 @@ private fun ExtendDueDateDialog(
         title = { Text(stringResource(R.string.loan_extend_dialog_title)) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                OutlinedTextField(
-                    value = newDueDate?.let { formatLoanDate(it) }.orEmpty(),
-                    onValueChange = {},
-                    readOnly = true,
-                    enabled = !isSaving,
-                    label = { Text(stringResource(R.string.loan_extend_new_due_date_label)) },
-                    trailingIcon = {
-                        IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Filled.DateRange, contentDescription = stringResource(R.string.loan_pick_date_icon))
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedDate?.format(monthOptionFormatter)?.replaceFirstChar { it.uppercase() }.orEmpty(),
+                        onValueChange = {},
+                        readOnly = true,
+                        enabled = !isSaving,
+                        label = { Text(stringResource(R.string.loan_extend_new_due_date_label)) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        monthOptions.forEach { date ->
+                            DropdownMenuItem(
+                                text = { Text(date.format(monthOptionFormatter).replaceFirstChar { it.uppercase() }) },
+                                onClick = {
+                                    selectedDate = date
+                                    expanded = false
+                                }
+                            )
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    }
+                }
                 Spacer(modifier = Modifier.height(Spacing.md))
                 OutlinedTextField(
                     value = notes,
@@ -327,44 +356,15 @@ private fun ExtendDueDateDialog(
             DialogButtonRow(
                 onDismiss = onDismiss,
                 onConfirm = {
-                    val date = newDueDate ?: return@DialogButtonRow
+                    val date = selectedDate ?: return@DialogButtonRow
                     onConfirm(date.toString(), notes)
                 },
                 confirmText = stringResource(R.string.loan_extend_save_button),
-                enabled = !isSaving && newDueDate != null,
+                enabled = !isSaving && selectedDate != null,
                 isLoading = isSaving
             )
         }
     )
-
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = newDueDate
-                ?.atStartOfDay(ZoneOffset.UTC)
-                ?.toInstant()
-                ?.toEpochMilli()
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        newDueDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-                    }
-                    showDatePicker = false
-                }) {
-                    Text(stringResource(R.string.loan_date_picker_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
 }
 
 @Composable

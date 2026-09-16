@@ -40,12 +40,14 @@ import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.ui.sources.formatCop
 import com.didiprogrammer.youtepresta.ui.theme.Spacing
+import kotlin.math.round
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterPaymentSheet(
     loanId: String,
     outstandingPrincipal: Double,
+    monthlyInterestRate: Double,
     defaultSourceId: String?,
     onDismiss: () -> Unit,
     onPaymentRegistered: () -> Unit,
@@ -65,19 +67,20 @@ fun RegisterPaymentSheet(
     }
 
     var principalPayment by remember { mutableStateOf("") }
-    var interestPayment by remember { mutableStateOf("") }
     var principalDestination by remember { mutableStateOf<FundingSource?>(null) }
     var interestDestination by remember { mutableStateOf<FundingSource?>(null) }
     var principalDropdownExpanded by remember { mutableStateOf(false) }
     var interestDropdownExpanded by remember { mutableStateOf(false) }
     var showMore by remember { mutableStateOf(false) }
 
-    val principalValue = principalPayment.replace(",", ".").let { if (it.isBlank()) 0.0 else it.toDoubleOrNull() }
-    val interestValue = interestPayment.replace(",", ".").let { if (it.isBlank()) 0.0 else it.toDoubleOrNull() }
-    val isPrincipalFieldError = principalPayment.isNotBlank() && (principalValue == null || principalValue < 0)
-    val isInterestFieldError = interestPayment.isNotBlank() && (interestValue == null || interestValue < 0)
-    val hasPositiveAmount = (principalValue ?: 0.0) > 0 || (interestValue ?: 0.0) > 0
-    val isFormValid = !isPrincipalFieldError && !isInterestFieldError && hasPositiveAmount && principalDestination != null
+    // Never user-entered (see CLAUDE.md): the monthly rate applies to the outstanding principal
+    // as it stands right before this payment, not the loan's original amount.
+    val interestPayment = round(outstandingPrincipal * monthlyInterestRate)
+
+    val principalValue = principalPayment.replace(",", ".").toDoubleOrNull()
+    val isPrincipalValid = principalValue != null && principalValue > 0
+    val isPrincipalError = principalPayment.isNotBlank() && !isPrincipalValid
+    val isFormValid = isPrincipalValid && principalDestination != null
 
     LaunchedEffect(fundingSources) {
         if (principalDestination == null && fundingSources.isNotEmpty()) {
@@ -114,10 +117,10 @@ fun RegisterPaymentSheet(
                 label = { Text(stringResource(R.string.payment_principal_label)) },
                 singleLine = true,
                 enabled = !isSaving,
-                isError = isPrincipalFieldError,
+                isError = isPrincipalError,
                 supportingText = {
-                    if (isPrincipalFieldError) {
-                        Text(stringResource(R.string.payment_amounts_invalid_error))
+                    if (isPrincipalError) {
+                        Text(stringResource(R.string.common_amount_invalid_error))
                     }
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -126,24 +129,16 @@ fun RegisterPaymentSheet(
             Spacer(modifier = Modifier.height(Spacing.sm))
 
             OutlinedTextField(
-                value = interestPayment,
-                onValueChange = { interestPayment = it },
-                label = { Text(stringResource(R.string.payment_interest_label)) },
-                singleLine = true,
-                enabled = !isSaving,
-                isError = isInterestFieldError,
-                supportingText = {
-                    if (isInterestFieldError) {
-                        Text(stringResource(R.string.payment_amounts_invalid_error))
-                    }
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                value = formatCop(interestPayment),
+                onValueChange = {},
+                readOnly = true,
+                enabled = false,
+                label = { Text(stringResource(R.string.payment_interest_calculated_label)) },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(Spacing.sm))
 
-            val total = (principalPayment.replace(",", ".").toDoubleOrNull() ?: 0.0) +
-                (interestPayment.replace(",", ".").toDoubleOrNull() ?: 0.0)
+            val total = (principalValue ?: 0.0) + interestPayment
             Text(text = stringResource(R.string.payment_total_label, formatCop(total)), fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(Spacing.md))
 
@@ -232,7 +227,7 @@ fun RegisterPaymentSheet(
                     viewModel.registerPayment(
                         loanId = loanId,
                         principalPaymentInput = principalPayment,
-                        interestPaymentInput = interestPayment,
+                        interestPayment = interestPayment,
                         principalDestination = principalDestination,
                         interestDestination = interestDestination
                     )

@@ -7,17 +7,15 @@ import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.Friend
 import com.didiprogrammer.youtepresta.data.model.FundingSource
 import com.didiprogrammer.youtepresta.data.repository.FundingSourceRepository
-import com.didiprogrammer.youtepresta.data.repository.InterestType
 import com.didiprogrammer.youtepresta.data.repository.LoanRepository
 import com.didiprogrammer.youtepresta.data.repository.LoanSourceMovementException
 import com.didiprogrammer.youtepresta.ui.common.SnackbarController
+import com.didiprogrammer.youtepresta.util.DueDayRule
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 sealed interface FundingSourcesLoadState {
     data object Loading : FundingSourcesLoadState
@@ -56,9 +54,8 @@ class NewLoanViewModel : ViewModel() {
         friend: Friend?,
         source: FundingSource?,
         amountInput: String,
-        dueDate: LocalDate?,
-        interestType: InterestType,
-        interestValueInput: String
+        dueDayRule: DueDayRule,
+        monthlyInterestRatePercentInput: String
     ) {
         if (friend == null) {
             _error.value = R.string.loan_friend_required_error
@@ -73,20 +70,10 @@ class NewLoanViewModel : ViewModel() {
             _error.value = R.string.common_amount_invalid_error
             return
         }
-        if (dueDate == null) {
-            _error.value = R.string.loan_due_date_required_error
+        val ratePercent = monthlyInterestRatePercentInput.replace(",", ".").toDoubleOrNull()
+        if (ratePercent == null || ratePercent < 0) {
+            _error.value = R.string.loan_monthly_interest_rate_invalid_error
             return
-        }
-
-        val interestValue = if (interestType == InterestType.FIXED) {
-            val value = interestValueInput.replace(",", ".").toDoubleOrNull()
-            if (value == null || value <= 0) {
-                _error.value = R.string.loan_interest_value_invalid_error
-                return
-            }
-            value
-        } else {
-            null
         }
 
         viewModelScope.launch {
@@ -97,9 +84,8 @@ class NewLoanViewModel : ViewModel() {
                     friendId = friend.id,
                     sourceId = source.id,
                     principalAmount = amount,
-                    interestType = interestType,
-                    interestValue = interestValue,
-                    dueDate = dueDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                    dueDayRule = dueDayRule,
+                    monthlyInterestRate = ratePercent / 100.0
                 )
                 _isSaving.value = false
                 _loanCreated.value = true

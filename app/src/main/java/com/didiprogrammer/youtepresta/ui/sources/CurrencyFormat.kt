@@ -21,6 +21,17 @@ fun formatCop(amount: Double): String = copFormatter.format(amount)
 fun formatPlainAmount(amount: Double): String =
     if (amount == amount.toLong().toDouble()) amount.toLong().toString() else amount.toString()
 
+/** `0.10` (a monthly interest rate as stored, e.g. `loans.monthly_interest_rate`) -> `"10%"`. */
+fun formatPercent(rate: Double): String {
+    val percent = rate * 100
+    val plain = if (percent == percent.toLong().toDouble()) {
+        percent.toLong().toString()
+    } else {
+        String.format(Locale.forLanguageTag("es-CO"), "%.2f", percent)
+    }
+    return "$plain%"
+}
+
 fun formatMovementDate(isoTimestamp: String): String = try {
     OffsetDateTime.parse(isoTimestamp)
         .atZoneSameInstant(ZoneId.systemDefault())

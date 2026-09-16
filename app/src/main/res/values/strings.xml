@@ -53,6 +53,10 @@
         <item quantity="one">%d activo</item>
         <item quantity="other">%d activos</item>
     </plurals>
+    <plurals name="friend_active_loans_count">
+        <item quantity="one">%d préstamo activo</item>
+        <item quantity="other">%d préstamos activos</item>
+    </plurals>
     <string name="home_due_loans_banner">Tienes %1$d cobros pendientes hoy</string>
     <string name="home_due_loans_banner_dismiss">Descartar</string>
 
@@ -91,6 +95,22 @@
     <string name="friend_delete_generic_error">No se pudo eliminar el amigo.</string>
     <string name="friend_picker_default_label">Buscar o crear amigo</string>
     <string name="friend_picker_create_option">Crear amigo \"%1$s\"</string>
+    <string name="friend_summary_line">%1$s · Deuda actual: %2$s</string>
+    <string name="friend_detail_title">Detalle del amigo</string>
+    <string name="friend_detail_load_error">No se pudo cargar el amigo.</string>
+    <string name="friend_summary_card_title">Resumen</string>
+    <string name="friend_summary_current_debt_label">Deuda actual</string>
+    <string name="friend_summary_active_loans_label">Préstamos activos</string>
+    <string name="friend_summary_total_loaned_label">Total histórico prestado</string>
+    <string name="friend_summary_total_interest_label">Interés cobrado</string>
+    <string name="friend_punctuality_label">Puntualidad</string>
+    <string name="friend_punctuality_not_enough_data_note">Aún no hay suficientes pagos registrados para calcular la puntualidad.</string>
+    <string name="friend_loans_section_title">Préstamos</string>
+    <string name="friend_no_loans_state">Este amigo todavía no tiene préstamos registrados.</string>
+    <string name="punctuality_punctual">Puntual</string>
+    <string name="punctuality_occasionally_late">Ocasionalmente impuntual</string>
+    <string name="punctuality_late">Impuntual</string>
+    <string name="punctuality_not_enough_data">Sin datos suficientes</string>
 
     <!-- Funding sources (bolsillos) -->
     <string name="sources_title">Bolsillos</string>

@@ -24,6 +24,18 @@ object PaymentRepository {
             .decodeList()
 
     /**
+     * Every payment for the signed-in user (RLS-filtered), in one query — used by
+     * [FriendSummaryRepository] to aggregate per-friend totals/punctuality without a query per
+     * friend or per loan.
+     */
+    suspend fun getAllPayments(): List<Payment> =
+        postgrest.from(TABLE_PAYMENTS)
+            .select {
+                order("payment_date", Order.DESCENDING)
+            }
+            .decodeList()
+
+    /**
      * Records a payment split manually by the user into principal/interest (see CLAUDE.md:
      * interest is never prorated automatically), moves each amount into its destination
      * funding source with its own traceable movement, and updates the loan's

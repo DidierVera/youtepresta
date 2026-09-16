@@ -120,7 +120,7 @@ fun LoansScreen(
 }
 
 @Composable
-private fun LoanRow(item: LoanListItem, onClick: () -> Unit) {
+internal fun LoanRow(item: LoanListItem, onClick: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Row(
             modifier = Modifier

@@ -7,6 +7,8 @@ import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.Friend
 import com.didiprogrammer.youtepresta.data.repository.FriendHasLoansException
 import com.didiprogrammer.youtepresta.data.repository.FriendRepository
+import com.didiprogrammer.youtepresta.data.repository.FriendSummary
+import com.didiprogrammer.youtepresta.data.repository.FriendSummaryRepository
 import com.didiprogrammer.youtepresta.ui.common.SnackbarController
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,10 +16,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+data class FriendListItem(val friend: Friend, val summary: FriendSummary?)
+
 sealed interface FriendsUiState {
     data object Loading : FriendsUiState
     data class Error(@StringRes val messageRes: Int) : FriendsUiState
-    data class Content(val friends: List<Friend>) : FriendsUiState
+    data class Content(val friends: List<FriendListItem>) : FriendsUiState
 }
 
 class FriendsViewModel : ViewModel() {
@@ -51,7 +55,18 @@ class FriendsViewModel : ViewModel() {
             _uiState.value = FriendsUiState.Loading
             try {
                 val friends = FriendRepository.getFriends()
-                _uiState.value = FriendsUiState.Content(friends)
+                // Independent, best-effort fetch: if summaries fail to load for any reason, the
+                // friends list still shows (just without the debt/punctuality line), same
+                // graceful-degradation pattern as LoansViewModel's friend-name lookup.
+                val summaries = try {
+                    FriendSummaryRepository.getFriendSummaries()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    emptyMap()
+                }
+                val items = friends.map { friend -> FriendListItem(friend, summaries[friend.id]) }
+                _uiState.value = FriendsUiState.Content(items)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

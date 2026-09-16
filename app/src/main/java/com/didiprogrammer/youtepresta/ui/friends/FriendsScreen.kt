@@ -39,18 +39,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.didiprogrammer.youtepresta.R
 import com.didiprogrammer.youtepresta.data.model.Friend
 import com.didiprogrammer.youtepresta.ui.common.DialogButtonRow
+import com.didiprogrammer.youtepresta.ui.sources.formatCop
 import com.didiprogrammer.youtepresta.ui.theme.Spacing
+import com.didiprogrammer.youtepresta.util.PunctualityCalculator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendsScreen(
     onBack: () -> Unit,
+    onFriendClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: FriendsViewModel = viewModel()
 ) {
@@ -58,7 +62,12 @@ fun FriendsScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     val isDialogVisible by viewModel.isDialogVisible.collectAsState()
+    val editingFriend by viewModel.editingFriend.collectAsState()
+    val isSaving by viewModel.isSaving.collectAsState()
+    val saveError by viewModel.saveError.collectAsState()
     val friendPendingDelete by viewModel.friendPendingDelete.collectAsState()
+    val isDeleting by viewModel.isDeleting.collectAsState()
+    val deleteError by viewModel.deleteError.collectAsState()
 
     Scaffold(
         modifier = modifier,
@@ -116,11 +125,12 @@ fun FriendsScreen(
                             .padding(innerPadding),
                         contentPadding = PaddingValues(Spacing.md)
                     ) {
-                        items(state.friends, key = { it.id }) { friend ->
+                        items(state.friends, key = { it.friend.id }) { item ->
                             FriendRow(
-                                friend = friend,
-                                onEdit = { viewModel.showEditDialog(friend) },
-                                onDelete = { viewModel.confirmDelete(friend) }
+                                item = item,
+                                onClick = { onFriendClick(item.friend.id) },
+                                onEdit = { viewModel.showEditDialog(item.friend) },
+                                onDelete = { viewModel.confirmDelete(item.friend) }
                             )
                             Spacer(modifier = Modifier.height(Spacing.sm))
                         }
@@ -131,17 +141,31 @@ fun FriendsScreen(
     }
 
     if (isDialogVisible) {
-        FriendDialog(viewModel = viewModel)
+        FriendEditDialog(
+            editingFriend = editingFriend,
+            isSaving = isSaving,
+            saveError = saveError,
+            onDismiss = { viewModel.dismissDialog() },
+            onSave = { name, phone, notes -> viewModel.saveFriend(name, phone, notes) }
+        )
     }
 
     if (friendPendingDelete != null) {
-        DeleteFriendDialog(viewModel = viewModel, friend = friendPendingDelete!!)
+        DeleteFriendConfirmDialog(
+            friend = friendPendingDelete!!,
+            isDeleting = isDeleting,
+            deleteError = deleteError,
+            onDismiss = { viewModel.dismissDeleteConfirmation() },
+            onConfirmDelete = { viewModel.deleteFriend() }
+        )
     }
 }
 
 @Composable
-private fun FriendRow(friend: Friend, onEdit: () -> Unit, onDelete: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun FriendRow(item: FriendListItem, onClick: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+    val friend = item.friend
+    val summary = item.summary
+    Card(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -149,11 +173,32 @@ private fun FriendRow(friend: Friend, onEdit: () -> Unit, onDelete: () -> Unit) 
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(text = friend.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 if (!friend.phone.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(text = friend.phone, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                // A friend with no loans at all shows a fully neutral row — no debt/punctuality
+                // line to speak of yet, per the business rule.
+                if (summary != null) {
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        PunctualityDot(status = PunctualityCalculator.calculateForPayments(summary.payments))
+                        Text(
+                            text = stringResource(
+                                R.string.friend_summary_line,
+                                pluralStringResource(
+                                    R.plurals.friend_active_loans_count,
+                                    summary.activeLoanCount,
+                                    summary.activeLoanCount
+                                ),
+                                formatCop(summary.currentDebt)
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
             Row {
@@ -169,17 +214,19 @@ private fun FriendRow(friend: Friend, onEdit: () -> Unit, onDelete: () -> Unit) 
 }
 
 @Composable
-private fun FriendDialog(viewModel: FriendsViewModel) {
-    val isSaving by viewModel.isSaving.collectAsState()
-    val saveError by viewModel.saveError.collectAsState()
-    val editingFriend by viewModel.editingFriend.collectAsState()
-
+internal fun FriendEditDialog(
+    editingFriend: Friend?,
+    isSaving: Boolean,
+    saveError: Int?,
+    onDismiss: () -> Unit,
+    onSave: (name: String, phone: String, notes: String) -> Unit
+) {
     var name by remember(editingFriend) { mutableStateOf(editingFriend?.name.orEmpty()) }
     var phone by remember(editingFriend) { mutableStateOf(editingFriend?.phone.orEmpty()) }
     var notes by remember(editingFriend) { mutableStateOf(editingFriend?.notes.orEmpty()) }
 
     AlertDialog(
-        onDismissRequest = { if (!isSaving) viewModel.dismissDialog() },
+        onDismissRequest = { if (!isSaving) onDismiss() },
         title = { Text(stringResource(if (editingFriend != null) R.string.friend_dialog_title_edit else R.string.friend_dialog_title_create)) },
         text = {
             Column {
@@ -210,14 +257,14 @@ private fun FriendDialog(viewModel: FriendsViewModel) {
                 )
                 if (saveError != null) {
                     Spacer(modifier = Modifier.height(Spacing.sm))
-                    Text(text = stringResource(saveError!!), color = MaterialTheme.colorScheme.error)
+                    Text(text = stringResource(saveError), color = MaterialTheme.colorScheme.error)
                 }
             }
         },
         confirmButton = {
             DialogButtonRow(
-                onDismiss = { viewModel.dismissDialog() },
-                onConfirm = { viewModel.saveFriend(name, phone, notes) },
+                onDismiss = onDismiss,
+                onConfirm = { onSave(name, phone, notes) },
                 confirmText = stringResource(if (editingFriend != null) R.string.common_save else R.string.common_create),
                 enabled = !isSaving && name.isNotBlank(),
                 isLoading = isSaving
@@ -227,26 +274,29 @@ private fun FriendDialog(viewModel: FriendsViewModel) {
 }
 
 @Composable
-private fun DeleteFriendDialog(viewModel: FriendsViewModel, friend: Friend) {
-    val isDeleting by viewModel.isDeleting.collectAsState()
-    val deleteError by viewModel.deleteError.collectAsState()
-
+internal fun DeleteFriendConfirmDialog(
+    friend: Friend,
+    isDeleting: Boolean,
+    deleteError: Int?,
+    onDismiss: () -> Unit,
+    onConfirmDelete: () -> Unit
+) {
     AlertDialog(
-        onDismissRequest = { if (!isDeleting) viewModel.dismissDeleteConfirmation() },
+        onDismissRequest = { if (!isDeleting) onDismiss() },
         title = { Text(stringResource(R.string.friend_delete_title)) },
         text = {
             Column {
                 Text(stringResource(R.string.friend_delete_confirm_message, friend.name))
                 if (deleteError != null) {
                     Spacer(modifier = Modifier.height(Spacing.sm))
-                    Text(text = stringResource(deleteError!!), color = MaterialTheme.colorScheme.error)
+                    Text(text = stringResource(deleteError), color = MaterialTheme.colorScheme.error)
                 }
             }
         },
         confirmButton = {
             DialogButtonRow(
-                onDismiss = { viewModel.dismissDeleteConfirmation() },
-                onConfirm = { viewModel.deleteFriend() },
+                onDismiss = onDismiss,
+                onConfirm = onConfirmDelete,
                 confirmText = stringResource(R.string.common_delete),
                 enabled = !isDeleting,
                 isLoading = isDeleting,

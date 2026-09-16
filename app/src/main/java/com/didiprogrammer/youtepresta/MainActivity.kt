@@ -48,6 +48,7 @@ import com.didiprogrammer.youtepresta.notification.NotificationScheduler
 import com.didiprogrammer.youtepresta.ui.auth.AuthViewModel
 import com.didiprogrammer.youtepresta.ui.auth.LoginScreen
 import com.didiprogrammer.youtepresta.ui.common.SnackbarController
+import com.didiprogrammer.youtepresta.ui.friends.FriendDetailScreen
 import com.didiprogrammer.youtepresta.ui.friends.FriendsScreen
 import com.didiprogrammer.youtepresta.ui.home.HomeScreen
 import com.didiprogrammer.youtepresta.ui.loans.LoanDetailScreen
@@ -67,6 +68,10 @@ private const val ROUTE_SOURCES = "sources"
 private const val ARG_SOURCE_ID = "sourceId"
 private const val ROUTE_SOURCE_DETAIL = "sources/{$ARG_SOURCE_ID}"
 private const val ROUTE_FRIENDS = "friends"
+private const val ARG_FRIEND_ID = "friendId"
+// Deliberately "friends/{friendId}" (plural, matching "friends"), analogous to
+// "sources/{sourceId}" — never ambiguous since ROUTE_FRIENDS has no other static sibling here.
+private const val ROUTE_FRIEND_DETAIL = "friends/{$ARG_FRIEND_ID}"
 private const val ROUTE_LOANS = "loans"
 private const val ROUTE_NEW_LOAN = "loans/new"
 private const val ARG_LOAN_ID = "loanId"
@@ -242,7 +247,19 @@ private fun AppRoot(
                     }
                     composable(ROUTE_FRIENDS) {
                         FriendsScreen(
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            onFriendClick = { friendId -> navController.navigate("friends/$friendId") }
+                        )
+                    }
+                    composable(
+                        route = ROUTE_FRIEND_DETAIL,
+                        arguments = listOf(navArgument(ARG_FRIEND_ID) { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val friendId = backStackEntry.arguments?.getString(ARG_FRIEND_ID).orEmpty()
+                        FriendDetailScreen(
+                            friendId = friendId,
+                            onBack = { navController.popBackStack() },
+                            onLoanClick = { loanId -> navController.navigate("loan/$loanId") }
                         )
                     }
                     composable(ROUTE_LOANS) {

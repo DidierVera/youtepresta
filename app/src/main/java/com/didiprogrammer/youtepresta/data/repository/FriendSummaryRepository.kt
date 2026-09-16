@@ -14,10 +14,11 @@ data class FriendSummary(
 
 /**
  * Per-friend loan/payment totals for FriendsScreen and FriendDetailScreen. Loads every loan and
- * payment for the signed-in user in two queries total — never one query per friend — and
- * aggregates them in memory, keyed by friendId. Both screens call this same function so their
- * numbers can never drift apart. Safe at this app's single-user data volume (see CLAUDE.md); a
- * friend with no loans at all simply has no entry in the returned map.
+ * payment for the signed-in user (RLS already scopes both queries to their own rows, whichever
+ * account is signed in) in two queries total — never one query per friend — and aggregates them
+ * in memory, keyed by friendId. Both screens call this same function so their numbers can never
+ * drift apart. Safe at this app's low per-account data volume (see CLAUDE.md); a friend with no
+ * loans at all simply has no entry in the returned map.
  */
 object FriendSummaryRepository {
 

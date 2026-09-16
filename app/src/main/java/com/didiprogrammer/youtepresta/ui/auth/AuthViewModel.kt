@@ -65,6 +65,12 @@ class AuthViewModel : ViewModel() {
     fun signOut() {
         viewModelScope.launch {
             AuthRepository.signOut()
+            // Clear the form so the next person to use this device (a different account, since
+            // logins are shared devices among trusted people, not just this one's own re-login)
+            // never sees a stale email left over from whoever was signed in before.
+            _email.value = ""
+            _password.value = ""
+            _uiState.value = LoginUiState.Idle
         }
     }
 }

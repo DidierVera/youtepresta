@@ -11,11 +11,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.didiprogrammer.youtepresta"
+        applicationId = "com.didiprogrammer.cobrador"
         minSdk = 24
         targetSdk = 37
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 5
+        versionName = "1.0.4"
 
         val localProperties = org.jetbrains.kotlin.konan.properties.Properties()
         localProperties.load(rootProject.file("local.properties").inputStream())
@@ -68,7 +68,6 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
     coreLibraryDesugaring(libs.android.tools.desugar.jdk.libs)
     testImplementation(libs.junit)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

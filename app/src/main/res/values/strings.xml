@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">You te presta</string>
+    <string name="app_name">Cobrador</string>
 
     <!-- Common / shared across features -->
     <string name="common_back">Volver</string>
@@ -64,7 +64,7 @@
     <string name="lock_title">Aplicación bloqueada</string>
     <string name="lock_message">Desbloquea con tu huella, rostro o PIN del dispositivo para continuar</string>
     <string name="lock_unlock_button">Desbloquear</string>
-    <string name="lock_prompt_title">Desbloquear You te presta</string>
+    <string name="lock_prompt_title">Desbloquear Cobrador</string>
     <string name="lock_prompt_subtitle">Usa tu huella, rostro o PIN del dispositivo</string>
     <string name="lock_error_generic">No se pudo verificar tu identidad. Intenta de nuevo.</string>
     <string name="lock_error_lockout">Demasiados intentos. Espera un momento e intenta de nuevo.</string>
